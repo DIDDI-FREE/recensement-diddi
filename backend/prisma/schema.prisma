@@ -1,0 +1,60 @@
+// Schéma DiddiFree — Enregistrement terrain
+// Les champs enum sont stockés en String avec validation applicative (zod),
+// pour garder le schéma compatible avec tous les providers Prisma.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Commercial {
+  id           String    @id @default(uuid())
+  nom          String
+  prenom       String
+  telephone    String    @unique
+  zone         String
+  motDePasse   String
+  role         String    @default("commercial") // "commercial" | "admin"
+  actif        Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  fiches       Fiche[]
+
+  @@map("commerciaux")
+}
+
+model Fiche {
+  id             String     @id @default(uuid())
+  idLocal        String     @unique // UUID généré côté client (idempotence / dédoublonnage)
+  type           String     // "chauffeur" | "restaurant" | "agent_commercial"
+  commercialId   String
+  commercial     Commercial @relation(fields: [commercialId], references: [id])
+  timestampLocal DateTime   // Moment exact de la saisie sur le terrain
+  syncedAt       DateTime?  // Moment de réception serveur
+  statut         String     @default("complet") // "brouillon" | "complet" | "doublon" | "valide"
+  telephoneSujet String     // Téléphone de la personne/établissement (clé de dédoublonnage)
+  donnees        String     // JSON stringifié — toutes les données du formulaire
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  photos         Photo[]
+
+  @@index([telephoneSujet, type]) // index, PAS unique : les doublons sont stockés (statut "doublon")
+  @@index([commercialId])
+  @@index([statut, type])
+  @@map("fiches")
+}
+
+model Photo {
+  id           String   @id @default(uuid())
+  ficheId      String
+  fiche        Fiche    @relation(fields: [ficheId], references: [id])
+  typePhoto    String   // "identite", "permis", "facade", "menu", ...
+  fichierPath  String   // Chemin relatif dans UPLOAD_DIR
+  tailleOctets Int?
+  uploadedAt   DateTime @default(now())
+
+  @@map("photos")
+}

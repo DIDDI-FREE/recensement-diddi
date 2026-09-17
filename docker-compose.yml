@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "3081:3000"
+    environment:
+      - DATABASE_URL=postgresql://diddifree:${DB_PASSWORD}@db:5432/registration
+      - JWT_SECRET=${JWT_SECRET}
+      - UPLOAD_DIR=/app/uploads
+      - SEED_ON_START=${SEED_ON_START:-false}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=diddifree
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=registration
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
