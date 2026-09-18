@@ -26,6 +26,7 @@ export default function GestionUtilisateurs() {
     telephone: '',
     zone: '',
     motDePasse: '',
+    role: 'commercial' as 'commercial' | 'admin',
   });
   const [enCreation, setEnCreation] = useState(false);
 
@@ -56,8 +57,8 @@ export default function GestionUtilisateurs() {
     setSucces(null);
     try {
       await api('/admin/commerciaux', { method: 'POST', body: { ...form } });
-      setSucces(`Compte créé : ${form.prenom} ${form.nom} (${form.telephone})`);
-      setForm({ nom: '', prenom: '', telephone: '', zone: '', motDePasse: '' });
+      setSucces(`Compte ${form.role === 'admin' ? 'ADMIN ' : ''}créé : ${form.prenom} ${form.nom} (${form.telephone})`);
+      setForm({ nom: '', prenom: '', telephone: '', zone: '', motDePasse: '', role: 'commercial' });
       await charger();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Création impossible');
@@ -73,6 +74,20 @@ export default function GestionUtilisateurs() {
       await api(`/admin/commerciaux/${c.id}`, {
         method: 'PATCH',
         body: { actif: !c.actif },
+      });
+      await charger();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : 'Action impossible');
+    }
+  };
+
+  const toggleRole = async (c: CommercialCompte) => {
+    setErreur(null);
+    setSucces(null);
+    try {
+      await api(`/admin/commerciaux/${c.id}/role`, {
+        method: 'PATCH',
+        body: { role: c.role === 'admin' ? 'commercial' : 'admin' },
       });
       await charger();
     } catch (err) {
@@ -141,6 +156,14 @@ export default function GestionUtilisateurs() {
             value={form.motDePasse}
             onChange={(e) => onChange('motDePasse', e.target.value)}
           />
+          <select
+            className={input}
+            value={form.role}
+            onChange={(e) => onChange('role', e.target.value)}
+          >
+            <option value="commercial">Rôle : Commercial</option>
+            <option value="admin">Rôle : Administrateur</option>
+          </select>
           <button
             type="submit"
             disabled={enCreation}
@@ -187,18 +210,30 @@ export default function GestionUtilisateurs() {
                       {new Date(c.createdAt).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
-                  {c.role !== 'admin' && (
+                  <div className="flex shrink-0 flex-col gap-1">
                     <button
-                      onClick={() => void toggleActif(c)}
-                      className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold ${
-                        c.actif
-                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      onClick={() => void toggleRole(c)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+                        c.role === 'admin'
+                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
                       }`}
                     >
-                      {c.actif ? 'Désactiver' : 'Activer'}
+                      {c.role === 'admin' ? 'Rétrograder' : 'Promouvoir admin'}
                     </button>
-                  )}
+                    {c.role !== 'admin' && (
+                      <button
+                        onClick={() => void toggleActif(c)}
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
+                          c.actif
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                      >
+                        {c.actif ? 'Désactiver' : 'Activer'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {!c.actif && (
                   <p className="mt-1 text-xs font-medium text-red-600">Compte désactivé</p>

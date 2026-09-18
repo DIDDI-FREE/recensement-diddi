@@ -40,7 +40,9 @@ export async function api<T = unknown>(
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
-  if (res.status === 401) {
+  // 401 sur le login = mauvais identifiants (message serveur affiché tel quel)
+  // 401 ailleurs = session expirée → retour à la page de connexion
+  if (res.status === 401 && path !== '/auth/login') {
     clearSession();
     window.location.hash = '#/login';
     throw new Error('Session expirée, veuillez vous reconnecter');
