@@ -1,9 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { Commercial } from '../types';
 import { getToken, getUser, clearSession, setSession, api } from '../utils/api';
 
-/** Gère la session du commercial (JWT 30 jours, travail offline ensuite). */
-export function useAuth() {
+interface AuthState {
+  user: Commercial | null;
+  loading: boolean;
+  erreur: string | null;
+  login: (telephone: string, motDePasse: string) => Promise<boolean>;
+  logout: () => void;
+  isAdmin: boolean;
+}
+
+const AuthContext = createContext<AuthState | null>(null);
+
+/**
+ * Session du commercial (JWT 30 jours, travail offline ensuite).
+ * Partagée via contexte : Login et App voient le même état,
+ * donc un login réussi bascule immédiatement sur l'accueil.
+ */
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Commercial | null>(() => {
     return getToken() ? getUser<Commercial>() : null;
   });
@@ -42,5 +57,18 @@ export function useAuth() {
     setUser(null);
   }, []);
 
-  return { user, loading, erreur, login, logout, isAdmin: user?.role === 'admin' };
+  return (
+    <AuthContext.Provider
+      value={{ user, loading, erreur, login, logout, isAdmin: user?.role === 'admin' }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAuth(): AuthState {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth doit être utilisé dans un <AuthProvider>');
+  return ctx;
 }
