@@ -11,6 +11,7 @@ import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 import PhotoCapture from '../components/PhotoCapture';
 import { getUser } from '../utils/api';
+import { synchroniser } from '../sync/syncManager';
 import type { Commercial } from '../types';
 
 function genererUuid(): string {
@@ -113,6 +114,11 @@ export default function FicheForm() {
       }
 
       setSucces(true);
+
+      // 3) En ligne : pousse IMMEDIATEMENT vers le serveur (sans attendre le polling 30 s)
+      if (navigator.onLine) {
+        void synchroniser();
+      }
     } finally {
       setSauvegarde(false);
     }
@@ -126,8 +132,8 @@ export default function FicheForm() {
         <p className="mt-1 text-sm text-gray-500">
           {LIBELLES_TYPES[type]} sauvegardé sur le téléphone.
           {navigator.onLine
-            ? ' La synchronisation vers le serveur va se faire automatiquement.'
-            : ' Elle sera synchronisée dès que le réseau reviendra.'}
+            ? ' Synchronisation vers le serveur en cours…'
+            : ' Hors ligne : la fiche sera synchronisée dès que le réseau reviendra.'}
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button

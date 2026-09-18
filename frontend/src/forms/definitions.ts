@@ -232,91 +232,28 @@ export const FORM_AGENT: FormDef = {
   type: 'agent_commercial',
   titre: 'Pré-enregistrement Agent Commercial',
   titreCourt: 'Agent Commercial',
+  // Formulaire volontairement court : identité et contact suffisent pour le terrain.
   sections: [
     {
       titre: 'Identité',
       fields: [
         { name: 'nom', label: 'Nom', type: 'text', required: true },
         { name: 'prenoms', label: 'Prénoms', type: 'text', required: true },
-        { name: 'date_naissance', label: 'Date de naissance', type: 'date', required: true },
+        { name: 'date_naissance', label: 'Date de naissance', type: 'date' },
         { name: 'sexe', label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
-        { name: 'adresse_residence', label: 'Adresse de résidence', type: 'text', required: true },
+        { name: 'adresse_residence', label: 'Adresse de résidence', type: 'text' },
         { name: 'telephone_principal', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'telephone_secondaire', label: 'Téléphone secondaire', type: 'tel' },
         { name: 'email', label: 'Email', type: 'email' },
-        { name: 'piece_type', label: 'Type de pièce d\'identité', type: 'select', options: TYPES_PIECE, required: true },
-        { name: 'piece_numero', label: 'N° de pièce d\'identité', type: 'text', required: true },
-      ],
-    },
-    {
-      titre: 'Formation et expérience',
-      fields: [
-        {
-          name: 'niveau_etudes',
-          label: 'Niveau d\'études',
-          type: 'select',
-          options: ['Primaire', 'Collège (BEPC)', 'Lycée (BAC)', 'BTS/DUT', 'Licence', 'Master', 'Autre'],
-        },
-        { name: 'dernier_diplome', label: 'Dernier diplôme', type: 'text' },
-        { name: 'experience_vente_annees', label: 'Expérience en vente (années)', type: 'number' },
-        { name: 'secteurs_experience', label: 'Secteurs d\'expérience', type: 'text' },
-        { name: 'employeur_precedent', label: 'Employeur précédent', type: 'text' },
-        { name: 'fonction_precedente', label: 'Fonction précédente', type: 'text' },
-        { name: 'duree_precedente', label: 'Durée (ex. : 2 ans)', type: 'text' },
-      ],
-    },
-    {
-      titre: 'Zone et disponibilité',
-      fields: [
         { name: 'zone_souhaitee', label: 'Zone / commune souhaitée', type: 'text' },
-        {
-          name: 'moyen_deplacement',
-          label: 'Moyen de déplacement',
-          type: 'select',
-          options: ['Moto', 'Véhicule', 'Aucun'],
-        },
-        {
-          name: 'disponibilite',
-          label: 'Disponibilité',
-          type: 'select',
-          options: ['Temps plein', 'Temps partiel', 'Autre'],
-        },
-        { name: 'date_disponibilite', label: 'Date de disponibilité', type: 'date' },
-      ],
-    },
-    {
-      titre: 'Références professionnelles',
-      fields: [
-        { name: 'ref1_nom', label: 'Référence 1 — nom', type: 'text' },
-        { name: 'ref1_fonction', label: 'Référence 1 — fonction', type: 'text' },
-        { name: 'ref1_telephone', label: 'Référence 1 — téléphone', type: 'tel' },
-        { name: 'ref2_nom', label: 'Référence 2 — nom', type: 'text' },
-        { name: 'ref2_fonction', label: 'Référence 2 — fonction', type: 'text' },
-        { name: 'ref2_telephone', label: 'Référence 2 — téléphone', type: 'tel' },
-      ],
-    },
-    {
-      titre: 'Paiement (Mobile Money)',
-      fields: [
-        { name: 'mm_operateur', label: 'Opérateur Mobile Money', type: 'select', options: OPERATEURS_MM },
-        { name: 'mm_numero', label: 'Numéro Mobile Money', type: 'tel', required: true },
-        { name: 'mm_nom_compte', label: 'Nom sur le compte', type: 'text' },
-      ],
-    },
-    {
-      titre: 'Contact d\'urgence',
-      fields: [
-        { name: 'urgence_nom', label: 'Nom complet', type: 'text', required: true },
-        { name: 'urgence_lien', label: 'Lien de parenté', type: 'text' },
-        { name: 'urgence_telephone', label: 'Téléphone', type: 'tel', required: true },
+        { name: 'piece_type', label: 'Type de pièce d\'identité', type: 'select', options: TYPES_PIECE },
+        { name: 'piece_numero', label: 'N° de pièce d\'identité', type: 'text' },
       ],
     },
   ],
   photos: [
     { key: 'piece_identite', label: 'Pièce d\'identité' },
-    { key: 'cv', label: 'CV (photo)' },
     { key: 'photo_identite', label: 'Photo d\'identité' },
-    { key: 'diplome', label: 'Dernier diplôme' },
   ],
 };
 
