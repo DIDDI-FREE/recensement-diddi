@@ -42,9 +42,11 @@ export interface FormDef {
 const OPERATEURS_MM = ['Orange Money', 'MTN MoMo', 'Moov Money', 'Wave', 'Autre'];
 const TYPES_PIECE = ['CNI', 'Passeport', 'Permis de conduire', 'Attestation d\'identité', 'Autre'];
 
+// Phase 1 — RECENSEMENT uniquement : identité + véhicule + zone.
+// Documents et photos seront collectés en phase 2 (candidat retenu).
 export const FORM_CHAUFFEUR: FormDef = {
   type: 'chauffeur',
-  titre: 'Pré-enregistrement Chauffeur — DiddiGo',
+  titre: 'Recensement Chauffeur VTC — DiddiGo',
   titreCourt: 'Chauffeur',
   sections: [
     {
@@ -52,24 +54,12 @@ export const FORM_CHAUFFEUR: FormDef = {
       fields: [
         { name: 'nom', label: 'Nom', type: 'text', required: true },
         { name: 'prenoms', label: 'Prénoms', type: 'text', required: true },
-        { name: 'date_naissance', label: 'Date de naissance', type: 'date', required: true },
-        { name: 'lieu_naissance', label: 'Lieu de naissance', type: 'text', required: true },
         { name: 'sexe', label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
-        { name: 'nationalite', label: 'Nationalité', type: 'text', required: true },
-        {
-          name: 'situation_matrimoniale',
-          label: 'Situation matrimoniale',
-          type: 'select',
-          options: ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf(ve)'],
-        },
-        { name: 'adresse_residence', label: 'Adresse de résidence', type: 'text', required: true },
-        { name: 'telephone_principal', label: 'Téléphone principal (Mobile Money possible)', type: 'tel', required: true },
+        { name: 'date_naissance', label: 'Date de naissance', type: 'date' },
+        { name: 'telephone_principal', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'telephone_secondaire', label: 'Téléphone secondaire', type: 'tel' },
         { name: 'email', label: 'Email', type: 'email' },
-        { name: 'type_piece', label: 'Type de pièce d\'identité', type: 'select', options: TYPES_PIECE },
-        { name: 'numero_piece', label: 'N° de pièce d\'identité', type: 'text', required: true },
-        { name: 'date_expiration_piece', label: 'Date d\'expiration de la pièce', type: 'date' },
-        { name: 'anciennete_ville', label: 'Ancienneté dans la ville', type: 'text', placeholder: 'Ex. : 5 ans' },
+        { name: 'adresse_residence', label: 'Quartier / résidence', type: 'text' },
       ],
     },
     {
@@ -82,49 +72,18 @@ export const FORM_CHAUFFEUR: FormDef = {
           required: true,
           options: ['Moto', 'Voiture', 'Tricycle', 'Autre'],
         },
-        { name: 'vehicule_marque', label: 'Marque', type: 'text', required: true },
-        { name: 'vehicule_modele', label: 'Modèle', type: 'text', required: true },
-        { name: 'vehicule_annee', label: 'Année', type: 'number', required: true },
-        { name: 'immatriculation', label: 'Immatriculation', type: 'text', required: true },
-        { name: 'vehicule_couleur', label: 'Couleur', type: 'text' },
-        { name: 'nombre_places', label: 'Nombre de places', type: 'number' },
+        { name: 'vehicule_marque', label: 'Marque', type: 'text' },
+        { name: 'immatriculation', label: 'Immatriculation', type: 'text' },
+        {
+          name: 'vehicule_proprietaire',
+          label: 'Propriétaire du véhicule',
+          type: 'select',
+          options: ['Moi-même', 'Société', 'Location'],
+        },
       ],
     },
     {
-      titre: 'Documents réglementaires',
-      fields: [
-        { name: 'permis_numero', label: 'N° de permis', type: 'text', required: true },
-        { name: 'permis_categorie', label: 'Catégorie du permis', type: 'text' },
-        { name: 'permis_expiration', label: 'Date d\'expiration du permis', type: 'date' },
-        { name: 'carte_grise_numero', label: 'N° carte grise', type: 'text' },
-        { name: 'carte_pro_numero', label: 'N° carte professionnelle', type: 'text' },
-        { name: 'assurance_compagnie', label: 'Assurance — compagnie', type: 'text' },
-        { name: 'assurance_numero', label: 'Assurance — n° de police', type: 'text' },
-        { name: 'assurance_expiration', label: 'Assurance — date d\'expiration', type: 'date' },
-        { name: 'visite_technique_date', label: 'Date dernière visite technique', type: 'date' },
-        { name: 'casier_judiciaire_numero', label: 'N° casier judiciaire', type: 'text' },
-      ],
-    },
-    {
-      titre: 'Paiement (Mobile Money)',
-      fields: [
-        { name: 'mm_operateur', label: 'Opérateur Mobile Money', type: 'select', options: OPERATEURS_MM },
-        { name: 'mm_numero', label: 'Numéro Mobile Money', type: 'tel', required: true },
-        { name: 'mm_nom_compte', label: 'Nom sur le compte', type: 'text' },
-        { name: 'banque', label: 'Banque (optionnel)', type: 'text' },
-        { name: 'rib', label: 'IBAN/RIB (optionnel)', type: 'text' },
-      ],
-    },
-    {
-      titre: 'Contact d\'urgence',
-      fields: [
-        { name: 'urgence_nom', label: 'Nom complet', type: 'text', required: true },
-        { name: 'urgence_lien', label: 'Lien de parenté', type: 'text' },
-        { name: 'urgence_telephone', label: 'Téléphone', type: 'tel', required: true },
-      ],
-    },
-    {
-      titre: 'Disponibilité',
+      titre: 'Zone et disponibilité',
       fields: [
         { name: 'zone_souhaitee', label: 'Zone souhaitée', type: 'text' },
         {
@@ -137,15 +96,64 @@ export const FORM_CHAUFFEUR: FormDef = {
       ],
     },
   ],
-  photos: [
-    { key: 'photo_identite', label: 'Photo d\'identité' },
-    { key: 'piece_identite', label: 'Pièce d\'identité' },
-    { key: 'permis', label: 'Permis de conduire' },
-    { key: 'carte_grise', label: 'Carte grise' },
-    { key: 'assurance', label: 'Assurance' },
-    { key: 'visite_technique', label: 'Visite technique' },
-    { key: 'casier_judiciaire', label: 'Casier judiciaire' },
+  // Documents/photos en phase 2 — recensement uniquement pour l'instant
+  photos: [],
+};
+
+// Phase 1 — RECENSEMENT livreur : identité + véhicule (moto/cargo) + zone de livraison.
+export const FORM_LIVREUR: FormDef = {
+  type: 'livreur',
+  titre: 'Recensement Livreur — DiddiSend',
+  titreCourt: 'Livreur',
+  sections: [
+    {
+      titre: 'Identité',
+      fields: [
+        { name: 'nom', label: 'Nom', type: 'text', required: true },
+        { name: 'prenoms', label: 'Prénoms', type: 'text', required: true },
+        { name: 'sexe', label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
+        { name: 'date_naissance', label: 'Date de naissance', type: 'date' },
+        { name: 'telephone_principal', label: 'Téléphone principal', type: 'tel', required: true },
+        { name: 'telephone_secondaire', label: 'Téléphone secondaire', type: 'tel' },
+        { name: 'email', label: 'Email', type: 'email' },
+        { name: 'adresse_residence', label: 'Quartier / résidence', type: 'text' },
+      ],
+    },
+    {
+      titre: 'Véhicule',
+      fields: [
+        {
+          name: 'vehicule_type',
+          label: 'Type de véhicule',
+          type: 'select',
+          required: true,
+          options: ['Moto', 'Cargo (tricycle)', 'Autre'],
+        },
+        { name: 'vehicule_marque', label: 'Marque', type: 'text' },
+        { name: 'immatriculation', label: 'Immatriculation', type: 'text' },
+        {
+          name: 'vehicule_proprietaire',
+          label: 'Propriétaire du véhicule',
+          type: 'select',
+          options: ['Moi-même', 'Société', 'Location'],
+        },
+      ],
+    },
+    {
+      titre: 'Zone et disponibilité',
+      fields: [
+        { name: 'zone_livraison', label: 'Zone de livraison souhaitée', type: 'text' },
+        {
+          name: 'disponibilite',
+          label: 'Disponibilité',
+          type: 'select',
+          options: ['Temps plein', 'Temps partiel', 'Horaires spécifiques'],
+        },
+        { name: 'disponibilite_details', label: 'Détails (horaires, jours…)', type: 'textarea' },
+      ],
+    },
   ],
+  photos: [],
 };
 
 export const FORM_RESTAURANT: FormDef = {
@@ -259,6 +267,7 @@ export const FORM_AGENT: FormDef = {
 
 export const FORM_DEFINITIONS: Record<TypeFiche, FormDef> = {
   chauffeur: FORM_CHAUFFEUR,
+  livreur: FORM_LIVREUR,
   restaurant: FORM_RESTAURANT,
   agent_commercial: FORM_AGENT,
 };
@@ -266,6 +275,7 @@ export const FORM_DEFINITIONS: Record<TypeFiche, FormDef> = {
 /** Champ utilisé comme téléphone de dédoublonnage pour chaque type de fiche. */
 export const CHAMP_TELEPHONE_SUJET: Record<TypeFiche, string> = {
   chauffeur: 'telephone_principal',
+  livreur: 'telephone_principal',
   restaurant: 'gerant_telephone',
   agent_commercial: 'telephone_principal',
 };

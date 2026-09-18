@@ -6,7 +6,8 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { synchroniser } from '../sync/syncManager';
 
 const CARTES: { type: TypeFiche; icone: string; couleur: string }[] = [
-  { type: 'chauffeur', icone: '🛵', couleur: 'bg-teal-600' },
+  { type: 'chauffeur', icone: '🚗', couleur: 'bg-teal-600' },
+  { type: 'livreur', icone: '🛵', couleur: 'bg-amber-600' },
   { type: 'restaurant', icone: '🍲', couleur: 'bg-orange-500' },
   { type: 'agent_commercial', icone: '🤝', couleur: 'bg-indigo-600' },
 ];

@@ -9,7 +9,7 @@ const router = Router();
 router.get('/', requireAuth, async (req, res) => {
   const query = z
     .object({
-      type: z.enum(['chauffeur', 'restaurant', 'agent_commercial']).optional(),
+      type: z.enum(['chauffeur', 'livreur', 'restaurant', 'agent_commercial']).optional(),
       statut: z.enum(['brouillon', 'complet', 'doublon', 'valide']).optional(),
       date: z.string().date().optional(), // YYYY-MM-DD, sur timestamp_local
     })

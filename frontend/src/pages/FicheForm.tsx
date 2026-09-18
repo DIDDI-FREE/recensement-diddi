@@ -31,7 +31,11 @@ export default function FicheForm() {
   const [sauvegarde, setSauvegarde] = useState(false);
   const [succes, setSucces] = useState(false);
 
-  const nbEtapes = useMemo(() => (form ? form.sections.length + 1 : 0), [form]); // +1 = photos
+  // +1 étape photos seulement si le formulaire en définit
+  const nbEtapes = useMemo(
+    () => (form ? form.sections.length + (form.photos.length > 0 ? 1 : 0) : 0),
+    [form]
+  );
 
   if (!form || !type) {
     return (
@@ -158,7 +162,7 @@ export default function FicheForm() {
     );
   }
 
-  const estEtapePhotos = etape === form.sections.length;
+  const estEtapePhotos = form.photos.length > 0 && etape === form.sections.length;
 
   return (
     <div className="flex flex-col gap-4">

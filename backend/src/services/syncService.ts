@@ -2,7 +2,7 @@ import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { savePhoto } from './photoService';
 
-export const TYPES_FICHE = ['chauffeur', 'restaurant', 'agent_commercial'] as const;
+export const TYPES_FICHE = ['chauffeur', 'livreur', 'restaurant', 'agent_commercial'] as const;
 
 const photoSchema = z.object({
   fiche_id_local: z.string().uuid(),

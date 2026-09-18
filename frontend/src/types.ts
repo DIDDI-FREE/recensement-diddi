@@ -1,4 +1,4 @@
-export type TypeFiche = 'chauffeur' | 'restaurant' | 'agent_commercial';
+export type TypeFiche = 'chauffeur' | 'livreur' | 'restaurant' | 'agent_commercial';
 
 export interface Commercial {
   id: string;
@@ -32,7 +32,8 @@ export interface PhotoLocal {
 }
 
 export const LIBELLES_TYPES: Record<TypeFiche, string> = {
-  chauffeur: 'Chauffeur (DiddiGo)',
+  chauffeur: 'Chauffeur VTC (DiddiGo)',
+  livreur: 'Livreur (DiddiSend)',
   restaurant: 'Restaurant (DiddiFood)',
   agent_commercial: 'Agent Commercial',
 };
