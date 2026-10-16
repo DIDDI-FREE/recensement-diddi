@@ -39,8 +39,8 @@ export interface FormDef {
   photos: PhotoSlot[];
 }
 
-const OPERATEURS_MM = ['Orange Money', 'MTN MoMo', 'Moov Money', 'Wave', 'Autre'];
 const TYPES_PIECE = ['CNI', 'Passeport', 'Permis de conduire', 'Attestation d\'identité', 'Autre'];
+const ZONES = ['Abidjan - Cocody', 'Abidjan - Deux-Plateaux', 'Abidjan - Marcory', 'Abidjan - Treichville', 'Abidjan - Yopougon', 'Abidjan - Abobo', 'Abidjan - Adjamé', 'Abidjan - Koumassi', 'Autre'];
 
 // Phase 1 — RECENSEMENT uniquement : identité + véhicule + zone.
 // Documents et photos seront collectés en phase 2 (candidat retenu).
@@ -55,7 +55,6 @@ export const FORM_CHAUFFEUR: FormDef = {
         { name: 'nom', label: 'Nom', type: 'text', required: true },
         { name: 'prenoms', label: 'Prénoms', type: 'text', required: true },
         { name: 'sexe', label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
-        { name: 'date_naissance', label: 'Date de naissance', type: 'date' },
         { name: 'telephone_principal', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'telephone_secondaire', label: 'Téléphone secondaire', type: 'tel' },
         { name: 'email', label: 'Email', type: 'email' },
@@ -65,15 +64,7 @@ export const FORM_CHAUFFEUR: FormDef = {
     {
       titre: 'Véhicule',
       fields: [
-        {
-          name: 'vehicule_type',
-          label: 'Type de véhicule',
-          type: 'select',
-          required: true,
-          options: ['Moto', 'Voiture', 'Tricycle', 'Autre'],
-        },
-        { name: 'vehicule_marque', label: 'Marque', type: 'text' },
-        { name: 'immatriculation', label: 'Immatriculation', type: 'text' },
+        { name: 'vehicule_modele', label: 'Modèle du véhicule', type: 'text' },
         {
           name: 'vehicule_proprietaire',
           label: 'Propriétaire du véhicule',
@@ -83,9 +74,14 @@ export const FORM_CHAUFFEUR: FormDef = {
       ],
     },
     {
-      titre: 'Zone et disponibilité',
+      titre: 'VÃ©hicule et zone',
       fields: [
-        { name: 'zone_souhaitee', label: 'Zone souhaitée', type: 'text' },
+        {
+          name: 'zone_souhaitee',
+          label: 'Zone souhaitée',
+          type: 'select',
+          options: ZONES,
+        },
         {
           name: 'disponibilite',
           label: 'Disponibilité',
@@ -96,9 +92,20 @@ export const FORM_CHAUFFEUR: FormDef = {
       ],
     },
   ],
-  // Documents/photos en phase 2 — recensement uniquement pour l'instant
   photos: [],
 };
+
+// Le parcours VTC tient sur deux écrans : identité, puis véhicule et zone.
+FORM_CHAUFFEUR.sections = [
+  FORM_CHAUFFEUR.sections[0],
+  {
+    titre: 'Véhicule et zone',
+    fields: [
+      ...FORM_CHAUFFEUR.sections[1].fields,
+      ...FORM_CHAUFFEUR.sections[2].fields,
+    ],
+  },
+];
 
 // Phase 1 — RECENSEMENT livreur : identité + véhicule (moto/cargo) + zone de livraison.
 export const FORM_LIVREUR: FormDef = {
@@ -112,7 +119,6 @@ export const FORM_LIVREUR: FormDef = {
         { name: 'nom', label: 'Nom', type: 'text', required: true },
         { name: 'prenoms', label: 'Prénoms', type: 'text', required: true },
         { name: 'sexe', label: 'Sexe', type: 'select', options: ['Masculin', 'Féminin'] },
-        { name: 'date_naissance', label: 'Date de naissance', type: 'date' },
         { name: 'telephone_principal', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'telephone_secondaire', label: 'Téléphone secondaire', type: 'tel' },
         { name: 'email', label: 'Email', type: 'email' },
@@ -127,10 +133,9 @@ export const FORM_LIVREUR: FormDef = {
           label: 'Type de véhicule',
           type: 'select',
           required: true,
-          options: ['Moto', 'Cargo (tricycle)', 'Autre'],
+          options: ['Vélo', 'Van-cargo', 'Moto'],
         },
-        { name: 'vehicule_marque', label: 'Marque', type: 'text' },
-        { name: 'immatriculation', label: 'Immatriculation', type: 'text' },
+        { name: 'vehicule_modele', label: 'Modèle', type: 'text' },
         {
           name: 'vehicule_proprietaire',
           label: 'Propriétaire du véhicule',
@@ -156,43 +161,47 @@ export const FORM_LIVREUR: FormDef = {
   photos: [],
 };
 
+// Le parcours livreur tient également sur deux écrans.
+FORM_LIVREUR.sections = [
+  FORM_LIVREUR.sections[0],
+  {
+    titre: 'Véhicule et zone',
+    fields: [
+      ...FORM_LIVREUR.sections[1].fields,
+      ...FORM_LIVREUR.sections[2].fields,
+    ],
+  },
+];
+
 export const FORM_RESTAURANT: FormDef = {
   type: 'restaurant',
-  titre: 'Pré-enregistrement Restaurant — DiddiFood',
+  titre: 'Enregistrement Restaurant — DiddiFood',
   titreCourt: 'Restaurant',
   sections: [
     {
       titre: 'Identité de l\'établissement',
       fields: [
         { name: 'nom_enseigne', label: 'Nom commercial (enseigne)', type: 'text', required: true },
-        { name: 'raison_sociale', label: 'Raison sociale', type: 'text' },
-        { name: 'forme_juridique', label: 'Forme juridique', type: 'text' },
-        { name: 'rccm', label: 'N° RCCM', type: 'text' },
-        { name: 'compte_contribuable', label: 'N° compte contribuable', type: 'text' },
         { name: 'specialite', label: 'Type de cuisine / spécialité', type: 'text', required: true },
-        { name: 'date_creation', label: 'Date de création', type: 'date' },
       ],
     },
     {
       titre: 'Localisation',
       fields: [
-        { name: 'adresse', label: 'Adresse complète', type: 'text', required: true },
-        { name: 'repere', label: 'Point de repère', type: 'text' },
-        { name: 'gps', label: 'Coordonnées GPS', type: 'gps', hint: 'Détection automatique si le GPS est activé' },
+        { name: 'adresse', label: 'Adresse / quartier', type: 'text', required: true },
+        { name: 'gps', label: 'Position du restaurant', type: 'gps', required: true, hint: 'Utilisez la position actuelle du téléphone' },
       ],
     },
     {
       titre: 'Contact du gérant',
       fields: [
         { name: 'gerant_nom', label: 'Nom et prénoms du gérant', type: 'text', required: true },
-        { name: 'gerant_fonction', label: 'Fonction', type: 'text' },
         { name: 'gerant_telephone', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'gerant_whatsapp', label: 'WhatsApp / secondaire', type: 'tel' },
-        { name: 'gerant_email', label: 'Email', type: 'email' },
       ],
     },
     {
-      titre: 'Horaires et offre',
+      titre: 'Horaires d\'ouverture',
       fields: [
         {
           name: 'jours_ouverture',
@@ -202,35 +211,19 @@ export const FORM_RESTAURANT: FormDef = {
         },
         { name: 'heure_ouverture', label: 'Heure d\'ouverture', type: 'time' },
         { name: 'heure_fermeture', label: 'Heure de fermeture', type: 'time' },
-        { name: 'nombre_plats', label: 'Nombre de plats au menu', type: 'number' },
-        { name: 'prix_min', label: 'Prix minimum (FCFA)', type: 'number' },
-        { name: 'prix_max', label: 'Prix maximum (FCFA)', type: 'number' },
-        { name: 'capacite_journaliere', label: 'Capacité de production / jour', type: 'number' },
       ],
     },
     {
-      titre: 'Conformité sanitaire',
+      titre: 'Menu et offre',
       fields: [
-        { name: 'certificat_hygiene_numero', label: 'N° certificat d\'hygiène', type: 'text' },
-        { name: 'certificat_hygiene_organisme', label: 'Organisme de délivrance', type: 'text' },
-        { name: 'certificat_hygiene_date', label: 'Date de délivrance', type: 'date' },
-      ],
-    },
-    {
-      titre: 'Paiement (Mobile Money)',
-      fields: [
-        { name: 'mm_operateur', label: 'Opérateur Mobile Money', type: 'select', options: OPERATEURS_MM },
-        { name: 'mm_numero', label: 'Numéro Mobile Money', type: 'tel', required: true },
-        { name: 'mm_nom_compte', label: 'Nom sur le compte', type: 'text' },
-        { name: 'banque', label: 'Banque (optionnel)', type: 'text' },
-        { name: 'rib', label: 'IBAN/RIB (optionnel)', type: 'text' },
+        { name: 'plats_signature', label: 'Plats ou spécialités proposés', type: 'textarea', required: true, placeholder: 'Ex. poulet braisé, attiéké, grillades…' },
+        { name: 'nombre_plats', label: 'Nombre approximatif de plats', type: 'number' },
+        { name: 'prix_moyen', label: 'Prix moyen d\'un plat (FCFA)', type: 'number' },
       ],
     },
   ],
   photos: [
     { key: 'identite_gerant', label: 'Pièce d\'identité du gérant' },
-    { key: 'rccm', label: 'RCCM' },
-    { key: 'certificat_hygiene', label: 'Certificat d\'hygiène' },
     { key: 'facade', label: 'Façade de l\'établissement' },
     { key: 'menu', label: 'Menu / carte' },
   ],

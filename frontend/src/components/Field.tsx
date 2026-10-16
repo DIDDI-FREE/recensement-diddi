@@ -68,16 +68,16 @@ export default function Field({ field, value, onChange }: Props) {
           <input
             className={base}
             value={value}
-            placeholder="Lat, Long"
-            onChange={(e) => onChange(field.name, e.target.value)}
+            placeholder="Position non détectée"
+            readOnly
           />
           <button
             type="button"
             onClick={detecterGps}
             disabled={gpsEnCours}
-            className="shrink-0 rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="shrink-0 rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-700 disabled:cursor-wait disabled:opacity-50"
           >
-            {gpsEnCours ? '…' : '📍 Détecter'}
+            {gpsEnCours ? 'Recherche…' : 'Utiliser ma position'}
           </button>
         </div>
       ) : (
@@ -92,7 +92,7 @@ export default function Field({ field, value, onChange }: Props) {
       )}
 
       {field.hint && !gpsErreur && <p className="mt-1 text-xs text-gray-500">{field.hint}</p>}
-      {gpsErreur && <p className="mt-1 text-xs text-red-600">{gpsErreur}</p>}
+      {gpsErreur && <p role="alert" className="mt-1 text-xs text-red-600">{gpsErreur}</p>}
     </div>
   );
 }

@@ -167,26 +167,29 @@ export default function FicheForm() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="text-sm text-teal-700 underline">
+        <button onClick={() => navigate('/')} className="text-sm font-medium text-teal-700 transition-colors hover:text-teal-900">
           ‹ Annuler
         </button>
-        <span className="text-xs font-medium text-gray-500">
-          Étape {etape + 1}/{nbEtapes}
+        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
+          Étape {etape + 1} sur {nbEtapes}
         </span>
       </div>
 
       {/* Barre de progression */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-teal-100">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-teal-100" role="progressbar" aria-valuemin={1} aria-valuemax={nbEtapes} aria-valuenow={etape + 1}>
         <div
           className="h-full bg-teal-600 transition-all"
           style={{ width: `${((etape + 1) / nbEtapes) * 100}%` }}
         />
       </div>
 
-      <h1 className="text-lg font-bold text-gray-900">{form.titre}</h1>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Nouvelle fiche</p>
+        <h1 className="mt-1 text-xl font-bold text-slate-900">{form.titre}</h1>
+      </div>
 
       {erreurs.length > 0 && (
-        <div className="rounded-md bg-red-50 p-3">
+        <div role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3">
           {erreurs.map((e) => (
             <p key={e} className="text-sm text-red-700">
               • {e}

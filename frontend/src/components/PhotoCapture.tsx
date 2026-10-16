@@ -46,7 +46,7 @@ export default function PhotoCapture({ label, value, onChange, captureEnvironmen
   };
 
   return (
-    <div className="rounded-lg border border-teal-200 bg-white p-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <p className="mb-2 text-sm font-medium text-gray-800">{label}</p>
 
       {previewUrl ? (
@@ -78,7 +78,7 @@ export default function PhotoCapture({ label, value, onChange, captureEnvironmen
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={compression}
-          className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-teal-300 py-4 text-sm font-medium text-teal-700 hover:bg-teal-50 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-teal-300 bg-white py-4 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-50 disabled:cursor-wait disabled:opacity-50"
         >
           {compression ? 'Compression…' : '📷 Prendre une photo'}
         </button>
