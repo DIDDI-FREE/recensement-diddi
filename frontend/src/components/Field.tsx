@@ -69,7 +69,7 @@ export default function Field({ field, value, onChange }: Props) {
             className={base}
             value={value}
             placeholder="Position non détectée"
-            readOnly
+            onChange={(e) => onChange(field.name, e.target.value)}
           />
           <button
             type="button"
