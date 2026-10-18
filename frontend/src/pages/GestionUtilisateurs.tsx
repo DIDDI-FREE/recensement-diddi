@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../utils/api';
 
 interface CommercialCompte {
@@ -21,6 +22,15 @@ interface ImportCommercial {
   email: string;
   commune: string;
   mot_de_passe: string;
+}
+
+interface FicheCommercial {
+  id: string;
+  type: string;
+  statut: string;
+  telephone_sujet: string;
+  timestamp_local: string;
+  donnees: Record<string, unknown>;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -86,6 +96,19 @@ export default function GestionUtilisateurs() {
   const [importNom, setImportNom] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [importResultat, setImportResultat] = useState<string | null>(null);
+  const [commercialSelectionne, setCommercialSelectionne] = useState<CommercialCompte | null>(null);
+  const [fichesSelectionnees, setFichesSelectionnees] = useState<FicheCommercial[]>([]);
+  const [chargementFiches, setChargementFiches] = useState(false);
+  const [commercialEdition, setCommercialEdition] = useState<CommercialCompte | null>(null);
+  const [edition, setEdition] = useState({
+    nom: '',
+    prenom: '',
+    telephone: '',
+    email: '',
+    zone: '',
+    mot_de_passe: '',
+  });
+  const [enregistrementEdition, setEnregistrementEdition] = useState(false);
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -149,6 +172,57 @@ export default function GestionUtilisateurs() {
       await charger();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Action impossible');
+    }
+  };
+
+  const voirFiches = async (commercial: CommercialCompte) => {
+    setErreur(null);
+    if (commercialSelectionne?.id === commercial.id) {
+      setCommercialSelectionne(null);
+      setFichesSelectionnees([]);
+      return;
+    }
+    setCommercialSelectionne(commercial);
+    setChargementFiches(true);
+    try {
+      const result = await api<{ fiches: FicheCommercial[] }>(`/admin/commerciaux/${commercial.id}/fiches`);
+      setFichesSelectionnees(result.fiches);
+    } catch (error) {
+      setErreur(error instanceof Error ? error.message : 'Chargement des fiches impossible');
+      setFichesSelectionnees([]);
+    } finally {
+      setChargementFiches(false);
+    }
+  };
+
+  const ouvrirEdition = (commercial: CommercialCompte) => {
+    setCommercialEdition(commercial);
+    setEdition({
+      nom: commercial.nom,
+      prenom: commercial.prenom,
+      telephone: commercial.telephone,
+      email: commercial.email ?? '',
+      zone: commercial.zone,
+      mot_de_passe: '',
+    });
+  };
+
+  const enregistrerEdition = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!commercialEdition) return;
+    setEnregistrementEdition(true);
+    setErreur(null);
+    try {
+      const { mot_de_passe, ...profil } = edition;
+      const body = mot_de_passe ? { ...profil, mot_de_passe } : profil;
+      await api(`/admin/commerciaux/${commercialEdition.id}`, { method: 'PATCH', body });
+      setSucces(`Compte modifié : ${edition.prenom} ${edition.nom}`);
+      setCommercialEdition(null);
+      await charger();
+    } catch (error) {
+      setErreur(error instanceof Error ? error.message : 'Modification impossible');
+    } finally {
+      setEnregistrementEdition(false);
     }
   };
 
@@ -227,6 +301,30 @@ export default function GestionUtilisateurs() {
         )}
         {importResultat && <p className="mt-2 text-sm text-green-700">{importResultat}</p>}
       </section>
+
+      {commercialEdition && (
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between border-b border-teal-100 pb-2">
+            <h2 className="font-semibold text-teal-800">Modifier le compte</h2>
+            <button type="button" onClick={() => setCommercialEdition(null)} className="text-sm text-gray-500 underline">
+              Annuler
+            </button>
+          </div>
+          <form onSubmit={(event) => void enregistrerEdition(event)} className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <input className={input} required placeholder="Nom *" value={edition.nom} onChange={(e) => setEdition({ ...edition, nom: e.target.value })} />
+              <input className={input} required placeholder="Prénom *" value={edition.prenom} onChange={(e) => setEdition({ ...edition, prenom: e.target.value })} />
+            </div>
+            <input className={input} required type="tel" placeholder="Téléphone *" value={edition.telephone} onChange={(e) => setEdition({ ...edition, telephone: e.target.value })} />
+            <input className={input} type="email" placeholder="Email (optionnel)" value={edition.email} onChange={(e) => setEdition({ ...edition, email: e.target.value })} />
+            <input className={input} required placeholder="Zone / commune *" value={edition.zone} onChange={(e) => setEdition({ ...edition, zone: e.target.value })} />
+            <input className={input} type="password" minLength={6} placeholder="Nouveau mot de passe (optionnel)" value={edition.mot_de_passe} onChange={(e) => setEdition({ ...edition, mot_de_passe: e.target.value })} />
+            <button type="submit" disabled={enregistrementEdition} className="rounded-md bg-teal-600 py-2.5 font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
+              {enregistrementEdition ? 'Enregistrement…' : 'Enregistrer les modifications'}
+            </button>
+          </form>
+        </section>
+      )}
 
       {/* Création d'un compte */}
       <section className="rounded-xl bg-white p-4 shadow-sm">
@@ -318,16 +416,16 @@ export default function GestionUtilisateurs() {
                   c.actif ? 'border-teal-200' : 'border-gray-200 opacity-70'
                 }`}
               >
-                <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <button type="button" onClick={() => void voirFiches(c)} className="text-left font-semibold text-gray-900 underline decoration-dotted underline-offset-2">
                       {c.prenom} {c.nom}
                       {c.role === 'admin' && (
                         <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-700">
                           admin
                         </span>
                       )}
-                    </p>
+                    </button>
                     <p className="text-sm text-gray-500">
                       📞 {c.telephone} · {c.zone}
                     </p>
@@ -338,6 +436,18 @@ export default function GestionUtilisateurs() {
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
+                    <button
+                      onClick={() => ouvrirEdition(c)}
+                      className="rounded-md bg-teal-100 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-200"
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => void voirFiches(c)}
+                      className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-200"
+                    >
+                      {commercialSelectionne?.id === c.id ? 'Masquer fiches' : 'Voir fiches'}
+                    </button>
                     <button
                       onClick={() => void toggleRole(c)}
                       className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
@@ -367,6 +477,26 @@ export default function GestionUtilisateurs() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+        {commercialSelectionne && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <h3 className="font-semibold text-blue-900">
+              Fiches de {commercialSelectionne.prenom} {commercialSelectionne.nom} ({fichesSelectionnees.length})
+            </h3>
+            {chargementFiches ? (
+              <p className="mt-2 text-sm text-blue-700">Chargement…</p>
+            ) : fichesSelectionnees.length === 0 ? (
+              <p className="mt-2 text-sm text-blue-700">Aucune fiche enregistrée.</p>
+            ) : (
+              <div className="mt-2 flex flex-col gap-2">
+                {fichesSelectionnees.map((fiche) => (
+                  <Link key={fiche.id} to={`/fiche/${fiche.id}`} className="rounded-md bg-white p-2 text-sm hover:bg-blue-100">
+                    <span className="font-medium">{fiche.type}</span> · {fiche.telephone_sujet} · {new Date(fiche.timestamp_local).toLocaleString('fr-FR')}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </section>

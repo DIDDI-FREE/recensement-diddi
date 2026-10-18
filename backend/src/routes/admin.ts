@@ -114,25 +114,70 @@ router.get('/commerciaux', requireAuth, requireAdmin, async (_req, res) => {
 
 /** PATCH /api/admin/commerciaux/:id — activer/désactiver un compte */
 router.patch('/commerciaux/:id', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = z.object({ actif: z.boolean() }).safeParse(req.body);
+  const parsed = z
+    .object({
+      actif: z.boolean().optional(),
+      nom: z.string().min(1).max(100).optional(),
+      prenom: z.string().min(1).max(100).optional(),
+      telephone: z.string().min(6).max(30).optional(),
+      email: z.union([z.string().email().max(200), z.literal('')]).optional(),
+      zone: z.string().min(1).max(100).optional(),
+      mot_de_passe: z.string().min(6).max(100).optional(),
+    })
+    .refine((body) => Object.keys(body).length > 0, 'Au moins un champ est requis')
+    .safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ erreur: 'Body attendu : { actif: boolean }' });
+    return res.status(400).json({ erreur: 'Données de modification invalides' });
   }
 
   const cible = await prisma.commercial.findUnique({ where: { id: req.params.id } });
   if (!cible) {
     return res.status(404).json({ erreur: 'Compte introuvable' });
   }
-  if (cible.role === 'admin') {
+  if (cible.role === 'admin' && parsed.data.actif === false) {
     return res.status(400).json({ erreur: 'Impossible de désactiver un compte admin' });
   }
 
+  const { mot_de_passe, email, ...rest } = parsed.data;
   const updated = await prisma.commercial.update({
     where: { id: req.params.id },
-    data: { actif: parsed.data.actif },
-    select: { id: true, nom: true, prenom: true, telephone: true, actif: true },
+    data: {
+      ...rest,
+      ...(email !== undefined ? { email: email || null } : {}),
+      ...(mot_de_passe ? { motDePasse: await bcrypt.hash(mot_de_passe, 10) } : {}),
+    },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, actif: true },
   });
   return res.json(updated);
+});
+
+/** GET /api/admin/commerciaux/:id/fiches — fiches d'un commercial (admin uniquement) */
+router.get('/commerciaux/:id/fiches', requireAuth, requireAdmin, async (req, res) => {
+  const commercial = await prisma.commercial.findUnique({ where: { id: req.params.id } });
+  if (!commercial) return res.status(404).json({ erreur: 'Compte introuvable' });
+
+  const fiches = await prisma.fiche.findMany({
+    where: { commercialId: commercial.id },
+    orderBy: { timestampLocal: 'desc' },
+    include: { photos: true },
+  });
+  return res.json({
+    commercial: { id: commercial.id, nom: commercial.nom, prenom: commercial.prenom },
+    fiches: fiches.map((fiche) => ({
+      id: fiche.id,
+      id_local: fiche.idLocal,
+      type: fiche.type,
+      statut: fiche.statut,
+      telephone_sujet: fiche.telephoneSujet,
+      timestamp_local: fiche.timestampLocal,
+      donnees: JSON.parse(fiche.donnees),
+      photos: fiche.photos.map((photo) => ({
+        id: photo.id,
+        type_photo: photo.typePhoto,
+        url: `/api/photos/${photo.fichierPath}`,
+      })),
+    })),
+  });
 });
 
 /** PATCH /api/admin/commerciaux/:id/role — promouvoir/rétrograder un compte (admin) */
