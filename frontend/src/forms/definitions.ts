@@ -183,11 +183,6 @@ export const FORM_RESTAURANT: FormDef = {
       fields: [
         { name: 'nom_enseigne', label: 'Nom commercial (enseigne)', type: 'text', required: true },
         { name: 'specialite', label: 'Type de cuisine / spécialité', type: 'text', required: true },
-      ],
-    },
-    {
-      titre: 'Localisation',
-      fields: [
         { name: 'adresse', label: 'Adresse / quartier', type: 'text', required: true },
         { name: 'gps', label: 'Position du restaurant', type: 'gps', required: true, hint: 'Utilisez la position actuelle du téléphone' },
       ],
@@ -198,11 +193,6 @@ export const FORM_RESTAURANT: FormDef = {
         { name: 'gerant_nom', label: 'Nom et prénoms du gérant', type: 'text', required: true },
         { name: 'gerant_telephone', label: 'Téléphone principal', type: 'tel', required: true },
         { name: 'gerant_whatsapp', label: 'WhatsApp / secondaire', type: 'tel' },
-      ],
-    },
-    {
-      titre: 'Horaires d\'ouverture',
-      fields: [
         {
           name: 'jours_ouverture',
           label: 'Jours d\'ouverture',
@@ -218,15 +208,10 @@ export const FORM_RESTAURANT: FormDef = {
       fields: [
         { name: 'plats_signature', label: 'Plats ou spécialités proposés', type: 'textarea', required: true, placeholder: 'Ex. poulet braisé, attiéké, grillades…' },
         { name: 'nombre_plats', label: 'Nombre approximatif de plats', type: 'number' },
-        { name: 'prix_moyen', label: 'Prix moyen d\'un plat (FCFA)', type: 'number' },
       ],
     },
   ],
-  photos: [
-    { key: 'identite_gerant', label: 'Pièce d\'identité du gérant' },
-    { key: 'facade', label: 'Façade de l\'établissement' },
-    { key: 'menu', label: 'Menu / carte' },
-  ],
+  photos: [],
 };
 
 export const FORM_AGENT: FormDef = {
