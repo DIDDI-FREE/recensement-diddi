@@ -16,6 +16,15 @@ const createCommercialSchema = z.object({
   role: z.enum(['commercial', 'admin']).optional(),
 });
 
+const importCommercialSchema = z.object({
+  nom: z.string().min(1).max(100),
+  prenom: z.string().min(1).max(100),
+  telephone: z.string().min(6).max(30),
+  email: z.union([z.string().email().max(200), z.literal('')]).optional(),
+  commune: z.string().min(1).max(100),
+  mot_de_passe: z.string().min(6).max(100),
+});
+
 /** POST /api/admin/commerciaux — créer un compte commercial ou admin (réservé admin) */
 router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
   const parsed = createCommercialSchema.safeParse(req.body);
@@ -40,6 +49,54 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
   });
 
   return res.status(201).json(commercial);
+});
+
+/** POST /api/admin/commerciaux/import — import CSV préparé côté frontend (admin uniquement) */
+router.post('/commerciaux/import', requireAuth, requireAdmin, async (req, res) => {
+  const parsed = z.object({ lignes: z.array(importCommercialSchema).min(1).max(500) }).safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      erreur: 'Fichier invalide',
+      details: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    });
+  }
+
+  const resultats: { telephone: string; statut: 'créé' | 'ignoré' | 'erreur'; message: string }[] = [];
+  for (const ligne of parsed.data.lignes) {
+    try {
+      const existant = await prisma.commercial.findUnique({ where: { telephone: ligne.telephone } });
+      if (existant) {
+        resultats.push({ telephone: ligne.telephone, statut: 'ignoré', message: 'Compte déjà existant' });
+        continue;
+      }
+
+      await prisma.commercial.create({
+        data: {
+          nom: ligne.nom,
+          prenom: ligne.prenom,
+          telephone: ligne.telephone,
+          email: ligne.email || null,
+          zone: ligne.commune,
+          motDePasse: await bcrypt.hash(ligne.mot_de_passe, 10),
+          role: 'commercial',
+        },
+      });
+      resultats.push({ telephone: ligne.telephone, statut: 'créé', message: 'Compte créé' });
+    } catch (error) {
+      resultats.push({
+        telephone: ligne.telephone,
+        statut: 'erreur',
+        message: error instanceof Error ? error.message : 'Erreur inconnue',
+      });
+    }
+  }
+
+  return res.status(201).json({
+    resultats,
+    created: resultats.filter((r) => r.statut === 'créé').length,
+    skipped: resultats.filter((r) => r.statut === 'ignoré').length,
+    errors: resultats.filter((r) => r.statut === 'erreur').length,
+  });
 });
 
 /** GET /api/admin/commerciaux — liste des commerciaux */

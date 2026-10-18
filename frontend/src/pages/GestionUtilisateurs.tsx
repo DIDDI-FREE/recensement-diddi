@@ -14,6 +14,57 @@ interface CommercialCompte {
   _count: { fiches: number };
 }
 
+interface ImportCommercial {
+  nom: string;
+  prenom: string;
+  telephone: string;
+  email: string;
+  commune: string;
+  mot_de_passe: string;
+}
+
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let value = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (quoted && line[i + 1] === '"') {
+        value += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char === ',' && !quoted) {
+      values.push(value.trim());
+      value = '';
+    } else {
+      value += char;
+    }
+  }
+  values.push(value.trim());
+  return values;
+}
+
+function parseCommercialCsv(content: string): ImportCommercial[] {
+  const lines = content.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) throw new Error('Le CSV doit contenir un en-tête et au moins une ligne');
+  const headers = parseCsvLine(lines[0]);
+  const expected = ['nom', 'prenom', 'telephone', 'email', 'commune', 'mot_de_passe'];
+  if (!expected.every((header) => headers.includes(header))) {
+    throw new Error(`Colonnes attendues : ${expected.join(', ')}`);
+  }
+  return lines.slice(1).map((line, index) => {
+    const values = parseCsvLine(line);
+    const row = Object.fromEntries(headers.map((header, i) => [header, values[i] ?? ''])) as unknown as ImportCommercial;
+    if (!row.nom || !row.prenom || !row.telephone || !row.commune || !row.mot_de_passe) {
+      throw new Error(`Ligne ${index + 2} incomplète`);
+    }
+    return row;
+  });
+}
+
 /** Gestion des commerciaux (réservé admin) : liste, création, activation. */
 export default function GestionUtilisateurs() {
   const [commerciaux, setCommerciaux] = useState<CommercialCompte[]>([]);
@@ -31,6 +82,10 @@ export default function GestionUtilisateurs() {
     role: 'commercial' as 'commercial' | 'admin',
   });
   const [enCreation, setEnCreation] = useState(false);
+  const [importLignes, setImportLignes] = useState<ImportCommercial[]>([]);
+  const [importNom, setImportNom] = useState('');
+  const [importEnCours, setImportEnCours] = useState(false);
+  const [importResultat, setImportResultat] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -97,6 +152,41 @@ export default function GestionUtilisateurs() {
     }
   };
 
+  const choisirCsv = async (file: File | undefined) => {
+    if (!file) return;
+    setErreur(null);
+    setImportResultat(null);
+    try {
+      setImportLignes(parseCommercialCsv(await file.text()));
+      setImportNom(file.name);
+    } catch (error) {
+      setImportLignes([]);
+      setImportNom('');
+      setErreur(error instanceof Error ? error.message : 'CSV invalide');
+    }
+  };
+
+  const importerCsv = async () => {
+    if (importLignes.length === 0) return;
+    setImportEnCours(true);
+    setErreur(null);
+    setImportResultat(null);
+    try {
+      const result = await api<{ created: number; skipped: number; errors: number }>(
+        '/admin/commerciaux/import',
+        { method: 'POST', body: { lignes: importLignes } }
+      );
+      setImportResultat(`${result.created} créé(s), ${result.skipped} ignoré(s), ${result.errors} erreur(s)`);
+      setImportLignes([]);
+      setImportNom('');
+      await charger();
+    } catch (error) {
+      setErreur(error instanceof Error ? error.message : 'Import impossible');
+    } finally {
+      setImportEnCours(false);
+    }
+  };
+
   const input =
     'w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500';
 
@@ -110,6 +200,33 @@ export default function GestionUtilisateurs() {
       {succes && (
         <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{succes}</div>
       )}
+
+      <section className="rounded-xl bg-white p-4 shadow-sm">
+        <h2 className="mb-3 border-b border-teal-100 pb-2 font-semibold text-teal-800">
+          Importer des commerciaux en masse
+        </h2>
+        <p className="mb-3 text-sm text-gray-600">
+          CSV attendu : nom, prenom, telephone, email, commune, mot_de_passe.
+        </p>
+        <input
+          className={`${input} mb-3`}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(e) => void choisirCsv(e.target.files?.[0])}
+        />
+        {importNom && <p className="mb-2 text-sm text-gray-600">{importNom} : {importLignes.length} ligne(s) prête(s)</p>}
+        {importLignes.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void importerCsv()}
+            disabled={importEnCours}
+            className="rounded-md bg-teal-600 px-4 py-2 font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+          >
+            {importEnCours ? 'Import en cours…' : `Importer ${importLignes.length} commerciaux`}
+          </button>
+        )}
+        {importResultat && <p className="mt-2 text-sm text-green-700">{importResultat}</p>}
+      </section>
 
       {/* Création d'un compte */}
       <section className="rounded-xl bg-white p-4 shadow-sm">
