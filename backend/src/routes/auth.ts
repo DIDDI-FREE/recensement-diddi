@@ -17,6 +17,7 @@ function toAuthUser(c: {
   nom: string;
   prenom: string;
   telephone: string;
+  email: string | null;
   zone: string;
   role: string;
 }): AuthUser {
@@ -25,6 +26,7 @@ function toAuthUser(c: {
     nom: c.nom,
     prenom: c.prenom,
     telephone: c.telephone,
+    email: c.email,
     zone: c.zone,
     role: c.role === 'admin' ? 'admin' : 'commercial',
   };
@@ -57,7 +59,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   const commercial = await prisma.commercial.findUnique({
     where: { id: req.user!.id },
-    select: { id: true, nom: true, prenom: true, telephone: true, zone: true, role: true, actif: true },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, role: true, actif: true },
   });
   if (!commercial || !commercial.actif) {
     return res.status(401).json({ erreur: 'Compte introuvable ou désactivé' });

@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:push": "prisma db push",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "import:commerciaux": "tsx src/scripts/import-commerciaux.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",

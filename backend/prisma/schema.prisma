@@ -16,6 +16,7 @@ model Commercial {
   nom          String
   prenom       String
   telephone    String    @unique
+  email        String?
   zone         String
   motDePasse   String
   role         String    @default("commercial") // "commercial" | "admin"

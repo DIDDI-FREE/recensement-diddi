@@ -6,6 +6,7 @@ interface CommercialCompte {
   nom: string;
   prenom: string;
   telephone: string;
+  email: string | null;
   zone: string;
   role: string;
   actif: boolean;
@@ -24,6 +25,7 @@ export default function GestionUtilisateurs() {
     nom: '',
     prenom: '',
     telephone: '',
+    email: '',
     zone: '',
     motDePasse: '',
     role: 'commercial' as 'commercial' | 'admin',
@@ -58,7 +60,7 @@ export default function GestionUtilisateurs() {
     try {
       await api('/admin/commerciaux', { method: 'POST', body: { ...form } });
       setSucces(`Compte ${form.role === 'admin' ? 'ADMIN ' : ''}créé : ${form.prenom} ${form.nom} (${form.telephone})`);
-      setForm({ nom: '', prenom: '', telephone: '', zone: '', motDePasse: '', role: 'commercial' });
+      setForm({ nom: '', prenom: '', telephone: '', email: '', zone: '', motDePasse: '', role: 'commercial' });
       await charger();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Création impossible');
@@ -142,6 +144,13 @@ export default function GestionUtilisateurs() {
           />
           <input
             className={input}
+            type="email"
+            placeholder="Email (optionnel)"
+            value={form.email}
+            onChange={(e) => onChange('email', e.target.value)}
+          />
+          <input
+            className={input}
             placeholder="Zone / commune affectée *"
             required
             value={form.zone}
@@ -205,6 +214,7 @@ export default function GestionUtilisateurs() {
                     <p className="text-sm text-gray-500">
                       📞 {c.telephone} · {c.zone}
                     </p>
+                    {c.email && <p className="text-sm text-gray-500">✉️ {c.email}</p>}
                     <p className="text-xs text-gray-400">
                       {c._count.fiches} fiche(s) · créé le{' '}
                       {new Date(c.createdAt).toLocaleDateString('fr-FR')}

@@ -10,6 +10,7 @@ const createCommercialSchema = z.object({
   nom: z.string().min(1).max(100),
   prenom: z.string().min(1).max(100),
   telephone: z.string().min(6).max(30),
+  email: z.union([z.string().email().max(200), z.literal('')]).optional(),
   zone: z.string().min(1).max(100),
   mot_de_passe: z.string().min(6).max(100),
   role: z.enum(['commercial', 'admin']).optional(),
@@ -25,7 +26,7 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
     });
   }
 
-  const { nom, prenom, telephone, zone, mot_de_passe, role } = parsed.data;
+  const { nom, prenom, telephone, email, zone, mot_de_passe, role } = parsed.data;
 
   const existant = await prisma.commercial.findUnique({ where: { telephone } });
   if (existant) {
@@ -34,8 +35,8 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
 
   const hash = await bcrypt.hash(mot_de_passe, 10);
   const commercial = await prisma.commercial.create({
-    data: { nom, prenom, telephone, zone, motDePasse: hash, role: role ?? 'commercial' },
-    select: { id: true, nom: true, prenom: true, telephone: true, zone: true, role: true, actif: true, createdAt: true },
+    data: { nom, prenom, telephone, email: email || null, zone, motDePasse: hash, role: role ?? 'commercial' },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, role: true, actif: true, createdAt: true },
   });
 
   return res.status(201).json(commercial);
@@ -45,7 +46,7 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
 router.get('/commerciaux', requireAuth, requireAdmin, async (_req, res) => {
   const commerciaux = await prisma.commercial.findMany({
     select: {
-      id: true, nom: true, prenom: true, telephone: true, zone: true,
+      id: true, nom: true, prenom: true, telephone: true, email: true, zone: true,
       role: true, actif: true, createdAt: true,
       _count: { select: { fiches: true } },
     },

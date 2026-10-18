@@ -5,6 +5,7 @@ export interface Commercial {
   nom: string;
   prenom: string;
   telephone: string;
+  email?: string | null;
   zone: string;
   role: 'commercial' | 'admin';
 }
