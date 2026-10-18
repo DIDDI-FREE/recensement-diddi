@@ -27,6 +27,7 @@ export default function Registre() {
   const { isAdmin } = useAuth();
   const [filtreType, setFiltreType] = useState<FiltreType>('tous');
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous');
+  const [recherche, setRecherche] = useState('');
   const [fichesServeur, setFichesServeur] = useState<FicheServeur[]>([]);
   const [chargementServeur, setChargementServeur] = useState(false);
   const [erreurServeur, setErreurServeur] = useState<string | null>(null);
@@ -49,6 +50,20 @@ export default function Registre() {
   }, [isAdmin]);
 
   const visibles = (isAdmin ? fichesServeur : fiches ?? []).filter((f) => {
+    const terme = recherche.trim().toLowerCase();
+    if (terme) {
+      const contenu = [
+        f.telephone_sujet,
+        f.type,
+        LIBELLES_TYPES[f.type],
+        f.donnees.nom_enseigne,
+        f.donnees.nom,
+        f.donnees.prenoms,
+        'commercial' in f ? `${f.commercial.prenom} ${f.commercial.nom}` : '',
+        JSON.stringify(f.donnees),
+      ].join(' ').toLowerCase();
+      if (!contenu.includes(terme)) return false;
+    }
     if (filtreType !== 'tous' && f.type !== filtreType) return false;
     if (filtreStatut === 'synced' && !('synced_at' in f ? f.synced_at : f.synced)) return false;
     if (filtreStatut === 'pending' && ('synced_at' in f ? f.synced_at : f.synced)) return false;
@@ -68,7 +83,17 @@ export default function Registre() {
       {isAdmin && <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Vue administrateur : toutes les fiches synchronisées, quel que soit le compte commercial.</p>}
       {erreurServeur && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{erreurServeur}</p>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <label className="flex-1">
+          <span className="sr-only">Rechercher dans le registre</span>
+          <input
+            className={`${selectStyle} w-full px-3`}
+            type="search"
+            placeholder="Rechercher une enseigne, un nom ou un téléphone…"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+          />
+        </label>
         <select
           className={selectStyle}
           value={filtreType}
