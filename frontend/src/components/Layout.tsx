@@ -27,7 +27,7 @@ export default function Layout({ user, onLogout }: Props) {
   return (
     <div className="min-h-screen bg-teal-50 text-gray-900">
       <header className="sticky top-0 z-10 bg-teal-700 text-white shadow">
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <button
             onClick={() => navigate('/')}
             className="text-left text-lg font-bold leading-tight"
@@ -37,17 +37,17 @@ export default function Layout({ user, onLogout }: Props) {
               {user.prenom} {user.nom} · {user.zone}
             </span>
           </button>
-          <button
-            onClick={() => navigate('/profil')}
-            className="rounded bg-teal-800 px-2 py-1 text-xs hover:bg-teal-900"
-          >
-            Profil
-          </button>
           <div className="flex items-center gap-2">
             <SyncIndicator />
             <button
+              onClick={() => navigate('/profil')}
+              className="hidden rounded-lg bg-teal-800 px-3 py-2 text-xs font-semibold transition hover:bg-teal-900 sm:block"
+            >
+              Profil
+            </button>
+            <button
               onClick={onLogout}
-              className="rounded bg-teal-800 px-2 py-1 text-xs hover:bg-teal-900"
+              className="rounded-lg bg-teal-800 px-3 py-2 text-xs font-semibold transition hover:bg-teal-900"
               title="Se déconnecter"
             >
               Sortir
@@ -57,13 +57,13 @@ export default function Layout({ user, onLogout }: Props) {
       </header>
 
       {/* marge basse pour ne pas masquer le contenu derrière la navigation */}
-      <main className="mx-auto max-w-xl px-4 py-4 pb-24">
+      <main className="mx-auto max-w-6xl px-4 py-5 pb-24 lg:px-6">
         <Outlet />
       </main>
 
       {/* Navigation basse — retour au menu principal en un toucher */}
       <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-        <div className="mx-auto flex max-w-xl">
+        <div className="mx-auto flex max-w-6xl">
           <NavLink to="/" end className={lienNav}>
             <span className="text-xl">🏠</span>
             Accueil

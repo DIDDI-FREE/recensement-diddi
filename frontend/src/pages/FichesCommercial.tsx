@@ -1,71 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 
-interface FicheCommercial {
-  id: string;
-  type: string;
-  statut: string;
-  telephone_sujet: string;
-  timestamp_local: string;
-  donnees: Record<string, unknown>;
-}
-
-interface ReponseFiches {
-  commercial: { id: string; nom: string; prenom: string };
-  fiches: FicheCommercial[];
-}
+interface FicheCommercial { id: string; type: string; statut: string; telephone_sujet: string; timestamp_local: string; donnees: Record<string, unknown>; }
+interface ReponseFiches { commercial: { id: string; nom: string; prenom: string }; fiches: FicheCommercial[]; }
+const types: Record<string, string> = { restaurant: 'Restaurant', chauffeur: 'Chauffeur VTC', livreur: 'Livreur', commercial: 'Commercial' };
+function nomFiche(fiche: FicheCommercial) { return String(fiche.donnees.nom_enseigne || fiche.donnees.nom || fiche.donnees.prenom || types[fiche.type] || fiche.type); }
 
 export default function FichesCommercial() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [data, setData] = useState<ReponseFiches | null>(null);
-  const [chargement, setChargement] = useState(true);
-  const [erreur, setErreur] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    void api<ReponseFiches>(`/admin/commerciaux/${id}/fiches`)
-      .then(setData)
-      .catch((error: unknown) => setErreur(error instanceof Error ? error.message : 'Chargement impossible'))
-      .finally(() => setChargement(false));
-  }, [id]);
-
-  if (chargement) return <p className="text-center text-gray-500">Chargement des fiches…</p>;
-  if (erreur) return <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{erreur}</p>;
-  if (!data) return <p className="text-center text-gray-500">Commercial introuvable.</p>;
-
-  return (
-    <div className="flex flex-col gap-4">
-      <button onClick={() => navigate('/gestion')} className="text-left text-sm text-teal-700 underline">
-        ‹ Retour à l’équipe
-      </button>
-
-      <div className="rounded-xl bg-white p-4 shadow-sm">
-        <h1 className="text-lg font-bold text-gray-900">
-          Fiches de {data.commercial.prenom} {data.commercial.nom}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">{data.fiches.length} fiche(s) enregistrée(s)</p>
-      </div>
-
-      {data.fiches.length === 0 ? (
-        <p className="rounded-xl bg-white p-6 text-center text-sm text-gray-500">Aucune fiche enregistrée.</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {data.fiches.map((fiche) => (
-            <Link key={fiche.id} to={`/fiche/${fiche.id}`} className="rounded-xl bg-white p-4 shadow-sm hover:bg-teal-50">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-gray-900">{fiche.donnees.nom_enseigne as string || fiche.donnees.nom as string || fiche.type}</span>
-                <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">{fiche.statut}</span>
-              </div>
-              <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
-                <span>{fiche.type} · {fiche.telephone_sujet}</span>
-                <span>{new Date(fiche.timestamp_local).toLocaleString('fr-FR')}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  const { id } = useParams<{ id: string }>(); const navigate = useNavigate(); const [data, setData] = useState<ReponseFiches | null>(null); const [chargement, setChargement] = useState(true); const [erreur, setErreur] = useState<string | null>(null); const [recherche, setRecherche] = useState(''); const [type, setType] = useState('tous');
+  useEffect(() => { if (!id) return; void api<ReponseFiches>(`/admin/commerciaux/${id}/fiches`).then(setData).catch((error: unknown) => setErreur(error instanceof Error ? error.message : 'Chargement impossible')).finally(() => setChargement(false)); }, [id]);
+  const fiches = useMemo(() => data?.fiches.filter((fiche) => { const texte = `${nomFiche(fiche)} ${fiche.telephone_sujet} ${fiche.type}`.toLowerCase(); return (type === 'tous' || fiche.type === type) && texte.includes(recherche.toLowerCase()); }) ?? [], [data, recherche, type]);
+  if (chargement) return <p className="py-10 text-center text-sm text-slate-500">Chargement des fiches…</p>;
+  if (erreur) return <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{erreur}</p>;
+  if (!data) return <p className="py-10 text-center text-sm text-slate-500">Commercial introuvable.</p>;
+  return <div className="flex flex-col gap-5"><button onClick={() => navigate('/gestion')} className="w-fit text-sm font-semibold text-teal-700 hover:text-teal-900">← Retour à l’équipe</button><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-medium text-teal-700">Activité du compte</p><h1 className="text-2xl font-bold tracking-tight text-slate-900">{data.commercial.prenom} {data.commercial.nom}</h1><p className="mt-1 text-sm text-slate-500">Toutes les fiches enregistrées par ce commercial.</p></div><div className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-center shadow-sm"><p className="text-2xl font-bold text-teal-700">{data.fiches.length}</p><p className="text-xs uppercase tracking-wide text-slate-500">fiches au total</p></div></div><section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-2 sm:flex-row"><input aria-label="Rechercher une fiche" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-100" placeholder="Rechercher une enseigne, un téléphone…" value={recherche} onChange={(e) => setRecherche(e.target.value)} /><select aria-label="Filtrer par type" className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500" value={type} onChange={(e) => setType(e.target.value)}><option value="tous">Tous les types</option>{Object.entries(types).filter(([key]) => data.fiches.some((fiche) => fiche.type === key)).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></div></section>{fiches.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">Aucune fiche ne correspond aux filtres.</div> : <div className="grid gap-3 lg:grid-cols-2">{fiches.map((fiche) => <Link key={fiche.id} to={`/fiche/${fiche.id}`} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold text-slate-900">{nomFiche(fiche)}</p><p className="mt-1 text-sm text-slate-500">{types[fiche.type] || fiche.type} · {fiche.telephone_sujet || 'Téléphone non renseigné'}</p></div><span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">{fiche.statut}</span></div><p className="mt-3 text-xs text-slate-400">Enregistrée le {new Date(fiche.timestamp_local).toLocaleString('fr-FR')}</p></Link>)}</div>}</div>;
 }
