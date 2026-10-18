@@ -41,7 +41,7 @@ export default function Layout({ user, onLogout }: Props) {
             <SyncIndicator />
             <button
               onClick={() => navigate('/profil')}
-              className="hidden rounded-lg bg-teal-800 px-3 py-2 text-xs font-semibold transition hover:bg-teal-900 sm:block"
+              className="rounded-lg bg-teal-800 px-2.5 py-2 text-xs font-semibold transition hover:bg-teal-900 sm:px-3"
             >
               Profil
             </button>
