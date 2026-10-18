@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 
 interface CommercialCompte {
@@ -22,15 +22,6 @@ interface ImportCommercial {
   email: string;
   commune: string;
   mot_de_passe: string;
-}
-
-interface FicheCommercial {
-  id: string;
-  type: string;
-  statut: string;
-  telephone_sujet: string;
-  timestamp_local: string;
-  donnees: Record<string, unknown>;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -77,6 +68,7 @@ function parseCommercialCsv(content: string): ImportCommercial[] {
 
 /** Gestion des commerciaux (réservé admin) : liste, création, activation. */
 export default function GestionUtilisateurs() {
+  const navigate = useNavigate();
   const [commerciaux, setCommerciaux] = useState<CommercialCompte[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -96,9 +88,6 @@ export default function GestionUtilisateurs() {
   const [importNom, setImportNom] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [importResultat, setImportResultat] = useState<string | null>(null);
-  const [commercialSelectionne, setCommercialSelectionne] = useState<CommercialCompte | null>(null);
-  const [fichesSelectionnees, setFichesSelectionnees] = useState<FicheCommercial[]>([]);
-  const [chargementFiches, setChargementFiches] = useState(false);
   const [commercialEdition, setCommercialEdition] = useState<CommercialCompte | null>(null);
   const [edition, setEdition] = useState({
     nom: '',
@@ -172,26 +161,6 @@ export default function GestionUtilisateurs() {
       await charger();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : 'Action impossible');
-    }
-  };
-
-  const voirFiches = async (commercial: CommercialCompte) => {
-    setErreur(null);
-    if (commercialSelectionne?.id === commercial.id) {
-      setCommercialSelectionne(null);
-      setFichesSelectionnees([]);
-      return;
-    }
-    setCommercialSelectionne(commercial);
-    setChargementFiches(true);
-    try {
-      const result = await api<{ fiches: FicheCommercial[] }>(`/admin/commerciaux/${commercial.id}/fiches`);
-      setFichesSelectionnees(result.fiches);
-    } catch (error) {
-      setErreur(error instanceof Error ? error.message : 'Chargement des fiches impossible');
-      setFichesSelectionnees([]);
-    } finally {
-      setChargementFiches(false);
     }
   };
 
@@ -418,7 +387,7 @@ export default function GestionUtilisateurs() {
               >
                   <div className="flex items-center justify-between">
                   <div>
-                    <button type="button" onClick={() => void voirFiches(c)} className="text-left font-semibold text-gray-900 underline decoration-dotted underline-offset-2">
+                    <button type="button" onClick={() => navigate(`/gestion/commerciaux/${c.id}/fiches`)} className="text-left font-semibold text-gray-900 underline decoration-dotted underline-offset-2">
                       {c.prenom} {c.nom}
                       {c.role === 'admin' && (
                         <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-xs text-indigo-700">
@@ -443,10 +412,10 @@ export default function GestionUtilisateurs() {
                       Modifier
                     </button>
                     <button
-                      onClick={() => void voirFiches(c)}
+                      onClick={() => navigate(`/gestion/commerciaux/${c.id}/fiches`)}
                       className="rounded-md bg-blue-100 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-200"
                     >
-                      {commercialSelectionne?.id === c.id ? 'Masquer fiches' : 'Voir fiches'}
+                      Voir fiches
                     </button>
                     <button
                       onClick={() => void toggleRole(c)}
@@ -477,26 +446,6 @@ export default function GestionUtilisateurs() {
                 )}
               </div>
             ))}
-          </div>
-        )}
-        {commercialSelectionne && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-            <h3 className="font-semibold text-blue-900">
-              Fiches de {commercialSelectionne.prenom} {commercialSelectionne.nom} ({fichesSelectionnees.length})
-            </h3>
-            {chargementFiches ? (
-              <p className="mt-2 text-sm text-blue-700">Chargement…</p>
-            ) : fichesSelectionnees.length === 0 ? (
-              <p className="mt-2 text-sm text-blue-700">Aucune fiche enregistrée.</p>
-            ) : (
-              <div className="mt-2 flex flex-col gap-2">
-                {fichesSelectionnees.map((fiche) => (
-                  <Link key={fiche.id} to={`/fiche/${fiche.id}`} className="rounded-md bg-white p-2 text-sm hover:bg-blue-100">
-                    <span className="font-medium">{fiche.type}</span> · {fiche.telephone_sujet} · {new Date(fiche.timestamp_local).toLocaleString('fr-FR')}
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </section>

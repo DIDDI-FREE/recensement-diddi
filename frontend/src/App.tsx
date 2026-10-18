@@ -8,6 +8,7 @@ import Registre from './pages/Registre';
 import FicheDetail from './pages/FicheDetail';
 import GestionUtilisateurs from './pages/GestionUtilisateurs';
 import Profil from './pages/Profil';
+import FichesCommercial from './pages/FichesCommercial';
 
 export default function App() {
   const { user, logout } = useAuth();
@@ -32,6 +33,10 @@ export default function App() {
           <Route path="/registre" element={<Registre />} />
           <Route path="/fiche/:id" element={<FicheDetail />} />
           <Route path="/profil" element={<Profil />} />
+          <Route
+            path="/gestion/commerciaux/:id/fiches"
+            element={user.role === 'admin' ? <FichesCommercial /> : <Navigate to="/" replace />}
+          />
           <Route
             path="/gestion"
             element={user.role === 'admin' ? <GestionUtilisateurs /> : <Navigate to="/" replace />}
