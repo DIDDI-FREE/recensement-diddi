@@ -12,6 +12,24 @@ const loginSchema = z.object({
   mot_de_passe: z.string().min(1),
 });
 
+const profileSchema = z
+  .object({
+    nom: z.string().min(1).max(100).optional(),
+    prenom: z.string().min(1).max(100).optional(),
+    email: z.union([z.string().email().max(200), z.literal('')]).optional(),
+    ancien_mot_de_passe: z.string().optional(),
+    nouveau_mot_de_passe: z.string().min(6).max(100).optional(),
+    confirmation_mot_de_passe: z.string().optional(),
+  })
+  .refine(
+    (data) => !data.nouveau_mot_de_passe || Boolean(data.ancien_mot_de_passe),
+    'L’ancien mot de passe est requis pour le changer'
+  )
+  .refine(
+    (data) => !data.nouveau_mot_de_passe || data.nouveau_mot_de_passe === data.confirmation_mot_de_passe,
+    'La confirmation du nouveau mot de passe ne correspond pas'
+  );
+
 function toAuthUser(c: {
   id: string;
   nom: string;
@@ -65,6 +83,39 @@ router.get('/me', requireAuth, async (req, res) => {
     return res.status(401).json({ erreur: 'Compte introuvable ou désactivé' });
   }
   return res.json(commercial);
+});
+
+/** PATCH /api/auth/me — modifier son profil sans pouvoir changer son téléphone */
+router.patch('/me', requireAuth, async (req, res) => {
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      erreur: 'Profil invalide',
+      details: parsed.error.issues.map((issue) => issue.message),
+    });
+  }
+
+  const commercial = await prisma.commercial.findUnique({ where: { id: req.user!.id } });
+  if (!commercial || !commercial.actif) {
+    return res.status(401).json({ erreur: 'Compte introuvable ou désactivé' });
+  }
+
+  const { ancien_mot_de_passe, nouveau_mot_de_passe, confirmation_mot_de_passe, ...profil } = parsed.data;
+  if (nouveau_mot_de_passe) {
+    const ancienValide = await bcrypt.compare(ancien_mot_de_passe!, commercial.motDePasse);
+    if (!ancienValide) return res.status(400).json({ erreur: 'Ancien mot de passe incorrect' });
+  }
+
+  const updated = await prisma.commercial.update({
+    where: { id: commercial.id },
+    data: {
+      ...profil,
+      ...(profil.email !== undefined ? { email: profil.email || null } : {}),
+      ...(nouveau_mot_de_passe ? { motDePasse: await bcrypt.hash(nouveau_mot_de_passe, 10) } : {}),
+    },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, role: true, actif: true },
+  });
+  return res.json(updated);
 });
 
 export default router;

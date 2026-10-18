@@ -37,6 +37,12 @@ export default function Layout({ user, onLogout }: Props) {
               {user.prenom} {user.nom} · {user.zone}
             </span>
           </button>
+          <button
+            onClick={() => navigate('/profil')}
+            className="rounded bg-teal-800 px-2 py-1 text-xs hover:bg-teal-900"
+          >
+            Profil
+          </button>
           <div className="flex items-center gap-2">
             <SyncIndicator />
             <button

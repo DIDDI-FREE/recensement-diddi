@@ -8,6 +8,7 @@ interface AuthState {
   erreur: string | null;
   login: (telephone: string, motDePasse: string) => Promise<boolean>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -57,9 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const refreshed = await api<Commercial>('/auth/me');
+    const token = getToken();
+    if (token) setSession(token, refreshed);
+    setUser(refreshed);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, erreur, login, logout, isAdmin: user?.role === 'admin' }}
+      value={{ user, loading, erreur, login, logout, refreshUser, isAdmin: user?.role === 'admin' }}
     >
       {children}
     </AuthContext.Provider>
