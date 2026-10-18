@@ -16,6 +16,7 @@ interface FicheServeur {
   timestamp_local: string;
   donnees: Record<string, unknown>;
   photos: { id: string; type_photo: string; url: string }[];
+  commercial: { nom: string; prenom: string; zone: string };
 }
 
 /** Détail lecture seule d'une fiche + ses photos locales. */
@@ -92,6 +93,13 @@ export default function FicheDetail() {
         <p className="mt-1 text-sm text-gray-500">
           Saisie le {new Date(ficheAffiche.timestamp_local).toLocaleString('fr-FR')}
         </p>
+        {isAdmin && ficheServeur?.commercial && (
+          <div className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            <span className="font-semibold">Enregistrée par :</span>{' '}
+            {ficheServeur.commercial.prenom} {ficheServeur.commercial.nom}
+            <span className="text-blue-600"> · {ficheServeur.commercial.zone}</span>
+          </div>
+        )}
       </div>
 
       {form.sections.map((section) => (
