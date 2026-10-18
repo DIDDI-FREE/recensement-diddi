@@ -10,7 +10,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // Le nouveau Service Worker attend l'accord de l'utilisateur afin
+      // d'afficher une bannière sans interrompre une fiche en cours.
+      registerType: 'prompt',
+      injectRegister: null,
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         name: 'DiddiFree — Enregistrement Terrain',
