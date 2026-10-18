@@ -18,6 +18,9 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - UPLOAD_DIR=/app/uploads
       - SEED_ON_START=${SEED_ON_START:-false}
+      - EVOLUTION_SERVER_URL=${SERVER_URL:-http://169.58.70.37:8080}
+      - EVOLUTION_API_KEY=${AUTHENTICATION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
     volumes:
       - uploads:/app/uploads
     depends_on:

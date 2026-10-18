@@ -1,10 +1,45 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
+
+function normaliserNumeroWhatsApp(telephone: string): string {
+  const chiffres = telephone.replace(/\D/g, '');
+  const local = chiffres.startsWith('225') ? chiffres.slice(3) : chiffres;
+  const numeroLocal = local.length === 9 ? `0${local}` : local;
+  if (numeroLocal.length !== 10 || !numeroLocal.startsWith('0')) {
+    throw new Error('Le numéro doit contenir 9 ou 10 chiffres ivoiriens');
+  }
+  return `225${numeroLocal}`;
+}
+
+function genererMotDePasseTemporaire(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#';
+  return Array.from({ length: 10 }, () => alphabet[randomInt(alphabet.length)]).join('');
+}
+
+async function envoyerWhatsApp(numero: string, message: string): Promise<void> {
+  const serverUrl = process.env.EVOLUTION_SERVER_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE;
+  if (!serverUrl || !apiKey || !instance) {
+    throw new Error('Evolution API non configurée : EVOLUTION_SERVER_URL, EVOLUTION_API_KEY et EVOLUTION_INSTANCE sont requis');
+  }
+
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/message/sendText/${encodeURIComponent(instance)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: apiKey },
+    body: JSON.stringify({ number: numero, text: message }),
+  });
+  if (!response.ok) {
+    const details = await response.text().catch(() => '');
+    throw new Error(`Evolution API a refusé l'envoi (${response.status})${details ? ` : ${details.slice(0, 200)}` : ''}`);
+  }
+}
 
 const createCommercialSchema = z.object({
   nom: z.string().min(1).max(100),
@@ -110,6 +145,41 @@ router.get('/commerciaux', requireAuth, requireAdmin, async (_req, res) => {
     orderBy: { createdAt: 'desc' },
   });
   return res.json({ commerciaux });
+});
+
+/** POST /api/admin/commerciaux/:id/envoyer-acces-whatsapp — réinitialise et envoie l'accès (admin uniquement) */
+router.post('/commerciaux/:id/envoyer-acces-whatsapp', requireAuth, requireAdmin, async (req, res) => {
+  const commercial = await prisma.commercial.findUnique({ where: { id: req.params.id } });
+  if (!commercial) return res.status(404).json({ erreur: 'Compte introuvable' });
+
+  let numero: string;
+  try {
+    numero = normaliserNumeroWhatsApp(commercial.telephone);
+  } catch (error) {
+    return res.status(400).json({ erreur: error instanceof Error ? error.message : 'Numéro de téléphone invalide' });
+  }
+
+  const nouveauMotDePasse = genererMotDePasseTemporaire();
+  const message = [
+    `Bonjour ${commercial.prenom} ${commercial.nom},`,
+    '',
+    'Voici vos nouveaux accès DiddiFree :',
+    `Téléphone : ${commercial.telephone}`,
+    `Mot de passe temporaire : ${nouveauMotDePasse}`,
+    '',
+    'Veuillez conserver ce message et modifier votre mot de passe après connexion.',
+  ].join('\n');
+
+  try {
+    await envoyerWhatsApp(numero, message);
+    await prisma.commercial.update({
+      where: { id: commercial.id },
+      data: { motDePasse: await bcrypt.hash(nouveauMotDePasse, 10) },
+    });
+    return res.json({ ok: true, numero });
+  } catch (error) {
+    return res.status(502).json({ erreur: error instanceof Error ? error.message : 'Envoi WhatsApp impossible' });
+  }
 });
 
 /** PATCH /api/admin/commerciaux/:id — activer/désactiver un compte */
