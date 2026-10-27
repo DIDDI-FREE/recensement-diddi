@@ -82,8 +82,18 @@ router.get('/commercial/:commercialId', requireAuth, async (req, res) => {
     orderBy: { timestampLocal: 'desc' },
     include: { photos: true },
   });
+  const parJour = new Map<string, { date: string; total: number; par_type: Record<string, number>; par_statut: Record<string, number> }>();
+  for (const fiche of fiches) {
+    const date = fiche.timestampLocal.toLocaleDateString('sv-SE', { timeZone: 'Africa/Abidjan' });
+    const current = parJour.get(date) ?? { date, total: 0, par_type: {}, par_statut: {} };
+    current.total += 1;
+    current.par_type[fiche.type] = (current.par_type[fiche.type] ?? 0) + 1;
+    current.par_statut[fiche.statut] = (current.par_statut[fiche.statut] ?? 0) + 1;
+    parJour.set(date, current);
+  }
   return res.json({
     commercial: { id: target.id, nom: target.nom, prenom: target.prenom, zone: target.zone },
+    par_jour: [...parJour.values()].sort((a, b) => b.date.localeCompare(a.date)),
     fiches: fiches.map((fiche) => ({
       id: fiche.id,
       id_local: fiche.idLocal,
