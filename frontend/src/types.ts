@@ -7,7 +7,8 @@ export interface Commercial {
   telephone: string;
   email?: string | null;
   zone: string;
-  role: 'commercial' | 'admin';
+  role: 'commercial' | 'superviseur' | 'admin';
+  zones: string[];
 }
 
 /** Fiche stockée dans IndexedDB (et miroir serveur après sync) */

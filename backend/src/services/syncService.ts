@@ -44,6 +44,8 @@ export async function processSync(
   commercialId: string,
   body: SyncBody
 ): Promise<SyncResultat[]> {
+  const commercial = await prisma.commercial.findUnique({ where: { id: commercialId }, select: { zone: true } });
+  const zoneEnregistrement = commercial?.zone || null;
   const resultats: SyncResultat[] = [];
   const photosByFiche = new Map<string, typeof body.photos>();
   for (const photo of body.photos) {
@@ -88,6 +90,7 @@ export async function processSync(
             idLocal: fiche.id_local,
             type: fiche.type,
             commercialId,
+            zoneEnregistrement,
             timestampLocal: new Date(fiche.timestamp_local),
             syncedAt: new Date(),
             statut,

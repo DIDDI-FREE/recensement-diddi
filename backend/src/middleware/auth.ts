@@ -11,7 +11,8 @@ export interface AuthUser {
   telephone: string;
   email?: string | null;
   zone: string;
-  role: 'commercial' | 'admin';
+  role: 'commercial' | 'superviseur' | 'admin';
+  zones: string[];
 }
 
 declare global {

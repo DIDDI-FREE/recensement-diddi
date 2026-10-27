@@ -23,7 +23,7 @@ interface FicheServeur {
 export default function FicheDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSupervisor } = useAuth();
   const [objectUrls, setObjectUrls] = useState<string[]>([]);
   const [ficheServeur, setFicheServeur] = useState<FicheServeur | null | undefined>(undefined);
   const [chargementServeur, setChargementServeur] = useState(false);
@@ -35,13 +35,13 @@ export default function FicheDetail() {
   );
 
   useEffect(() => {
-    if (!isAdmin || !id) return;
+    if ((!isAdmin && !isSupervisor) || !id) return;
     setChargementServeur(true);
     void api<FicheServeur>(`/fiches/${id}`)
       .then(setFicheServeur)
       .catch(() => setFicheServeur(null))
       .finally(() => setChargementServeur(false));
-  }, [id, isAdmin]);
+  }, [id, isAdmin, isSupervisor]);
 
   // URLs d'aperçu des photos locales (à révoquer au démontage)
   useEffect(() => {
@@ -52,7 +52,8 @@ export default function FicheDetail() {
   }, [photos]);
 
   const ficheAffiche = fiche ?? ficheServeur;
-  if (fiche === undefined && (isAdmin ? (chargementServeur || ficheServeur === undefined) : true)) {
+  const peutVoirServeur = isAdmin || isSupervisor;
+  if (fiche === undefined && (peutVoirServeur ? (chargementServeur || ficheServeur === undefined) : true)) {
     return <p className="text-center text-gray-500">Chargement…</p>;
   }
   if (!ficheAffiche) {

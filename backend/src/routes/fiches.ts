@@ -5,7 +5,7 @@ import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-/** GET /api/fiches — liste (filtres : type, statut, date). Un commercial ne voit que ses fiches. */
+/** GET /api/fiches — liste filtrée selon le rôle, la zone et la date. */
 router.get('/', requireAuth, async (req, res) => {
   const query = z
     .object({
@@ -20,15 +20,22 @@ router.get('/', requireAuth, async (req, res) => {
   }
 
   const { type, statut, date } = query.data;
+  const debutDate = date ? new Date(`${date}T00:00:00+01:00`) : undefined;
+  const finDate = debutDate ? new Date(debutDate.getTime() + 24 * 60 * 60 * 1000) : undefined;
+  const scope = req.user!.role === 'admin'
+    ? {}
+    : req.user!.role === 'superviseur'
+      ? { zoneEnregistrement: { in: req.user!.zones } }
+      : { commercialId: req.user!.id };
   const where = {
-    ...(req.user!.role !== 'admin' ? { commercialId: req.user!.id } : {}),
+    ...scope,
     ...(type ? { type } : {}),
     ...(statut ? { statut } : {}),
     ...(date
       ? {
           timestampLocal: {
-            gte: new Date(`${date}T00:00:00`),
-            lt: new Date(`${date}T23:59:59.999`),
+            gte: debutDate,
+            lt: finDate,
           },
         }
       : {}),
@@ -60,6 +67,36 @@ router.get('/', requireAuth, async (req, res) => {
   });
 });
 
+/** GET /api/fiches/commercial/:id — fiches d'un commercial dans le périmètre autorisé. */
+router.get('/commercial/:commercialId', requireAuth, async (req, res) => {
+  const target = await prisma.commercial.findUnique({ where: { id: req.params.commercialId } });
+  if (!target) return res.status(404).json({ erreur: 'Commercial introuvable' });
+  if (req.user!.role === 'commercial' && target.id !== req.user!.id) return res.status(403).json({ erreur: 'Accès refusé' });
+  if (req.user!.role === 'superviseur' && !req.user!.zones.includes(target.zone)) return res.status(403).json({ erreur: 'Commercial hors de votre périmètre' });
+
+  const fiches = await prisma.fiche.findMany({
+    where: {
+      commercialId: target.id,
+      ...(req.user!.role === 'superviseur' ? { zoneEnregistrement: { in: req.user!.zones } } : {}),
+    },
+    orderBy: { timestampLocal: 'desc' },
+    include: { photos: true },
+  });
+  return res.json({
+    commercial: { id: target.id, nom: target.nom, prenom: target.prenom, zone: target.zone },
+    fiches: fiches.map((fiche) => ({
+      id: fiche.id,
+      id_local: fiche.idLocal,
+      type: fiche.type,
+      statut: fiche.statut,
+      telephone_sujet: fiche.telephoneSujet,
+      timestamp_local: fiche.timestampLocal,
+      donnees: JSON.parse(fiche.donnees),
+      photos: fiche.photos.map((photo) => ({ id: photo.id, type_photo: photo.typePhoto, url: `/api/photos/${photo.fichierPath}` })),
+    })),
+  });
+});
+
 /** GET /api/fiches/:id — détail d'une fiche */
 router.get('/:id', requireAuth, async (req, res) => {
   const fiche = await prisma.fiche.findUnique({
@@ -70,7 +107,10 @@ router.get('/:id', requireAuth, async (req, res) => {
   if (!fiche) {
     return res.status(404).json({ erreur: 'Fiche introuvable' });
   }
-  if (req.user!.role !== 'admin' && fiche.commercialId !== req.user!.id) {
+  const autorise = req.user!.role === 'admin'
+    || (req.user!.role === 'commercial' && fiche.commercialId === req.user!.id)
+    || (req.user!.role === 'superviseur' && Boolean(fiche.zoneEnregistrement && req.user!.zones.includes(fiche.zoneEnregistrement)));
+  if (!autorise) {
     return res.status(403).json({ erreur: 'Accès refusé' });
   }
 

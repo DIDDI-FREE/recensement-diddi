@@ -11,6 +11,7 @@ import FicheDetail from './pages/FicheDetail';
 import GestionUtilisateurs from './pages/GestionUtilisateurs';
 import Profil from './pages/Profil';
 import FichesCommercial from './pages/FichesCommercial';
+import RapportActivite from './pages/RapportActivite';
 
 function NotificationMiseAJour() {
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
@@ -54,7 +55,8 @@ export default function App() {
           <Route path="/registre" element={<Registre />} />
           <Route path="/fiche/:id" element={<FicheDetail />} />
           <Route path="/profil" element={<Profil />} />
-          <Route path="/gestion/commerciaux/:id/fiches" element={user.role === 'admin' ? <FichesCommercial /> : <Navigate to="/" replace />} />
+          <Route path="/rapports" element={<RapportActivite />} />
+          <Route path="/gestion/commerciaux/:id/fiches" element={<FichesCommercial />} />
           <Route path="/gestion" element={user.role === 'admin' ? <GestionUtilisateurs /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

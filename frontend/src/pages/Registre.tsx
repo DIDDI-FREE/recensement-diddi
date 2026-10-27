@@ -24,10 +24,11 @@ interface FicheServeur {
 
 /** Registre local : toutes les fiches du commercial, avec statut de sync. */
 export default function Registre() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSupervisor, user } = useAuth();
   const [filtreType, setFiltreType] = useState<FiltreType>('tous');
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>('tous');
   const [recherche, setRecherche] = useState('');
+  const [dateEnregistrement, setDateEnregistrement] = useState('');
   const [fichesServeur, setFichesServeur] = useState<FicheServeur[]>([]);
   const [chargementServeur, setChargementServeur] = useState(false);
   const [erreurServeur, setErreurServeur] = useState<string | null>(null);
@@ -38,18 +39,24 @@ export default function Registre() {
   );
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isSupervisor) return;
     setChargementServeur(true);
-    void api<{ fiches: FicheServeur[] }>('/fiches')
+    const query = dateEnregistrement ? `?date=${encodeURIComponent(dateEnregistrement)}` : '';
+    void api<{ fiches: FicheServeur[] }>(`/fiches${query}`)
       .then((result) => {
         setFichesServeur(result.fiches);
         setErreurServeur(null);
       })
       .catch((error: unknown) => setErreurServeur(error instanceof Error ? error.message : 'Chargement impossible'))
       .finally(() => setChargementServeur(false));
-  }, [isAdmin]);
+  }, [isAdmin, isSupervisor, dateEnregistrement]);
 
-  const visibles = (isAdmin ? fichesServeur : fiches ?? []).filter((f) => {
+  const utiliseServeur = isAdmin || isSupervisor;
+  const visibles = (utiliseServeur ? fichesServeur : fiches ?? []).filter((f) => {
+    if (dateEnregistrement && !utiliseServeur) {
+      const dateLocale = new Date(f.timestamp_local).toLocaleDateString('sv-SE');
+      if (dateLocale !== dateEnregistrement) return false;
+    }
     const terme = recherche.trim().toLowerCase();
     if (terme) {
       const contenu = [
@@ -81,6 +88,7 @@ export default function Registre() {
       </div>
 
       {isAdmin && <p className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">Vue administrateur : toutes les fiches synchronisées, quel que soit le compte commercial.</p>}
+      {isSupervisor && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Vue superviseur : fiches des zones {user?.zones?.join(', ') || user?.zone}.</p>}
       {erreurServeur && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{erreurServeur}</p>}
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -115,6 +123,7 @@ export default function Registre() {
           <option value="synced">✅ Synchronisées</option>
           <option value="pending">⏳ En attente</option>
         </select>
+        <label className="flex items-center gap-2 text-sm text-gray-600"><span className="sr-only">Date d’enregistrement</span><input aria-label="Filtrer par date d’enregistrement" className={selectStyle} type="date" value={dateEnregistrement} onChange={(e) => setDateEnregistrement(e.target.value)} />{dateEnregistrement && <button type="button" className="text-teal-700 underline" onClick={() => setDateEnregistrement('')}>Effacer</button>}</label>
       </div>
 
       {chargementServeur && <p className="rounded-xl bg-white p-6 text-center text-sm text-gray-500">Chargement des fiches…</p>}

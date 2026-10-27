@@ -19,7 +19,8 @@ model Commercial {
   email        String?
   zone         String
   motDePasse   String
-  role         String    @default("commercial") // "commercial" | "admin"
+  role         String    @default("commercial") // "commercial" | "superviseur" | "admin"
+  zones        String[]  @default([]) // zones couvertes par le commercial/superviseur
   actif        Boolean   @default(true)
   createdAt    DateTime  @default(now())
   fiches       Fiche[]
@@ -33,6 +34,7 @@ model Fiche {
   type           String     // "chauffeur" | "restaurant" | "agent_commercial"
   commercialId   String
   commercial     Commercial @relation(fields: [commercialId], references: [id])
+  zoneEnregistrement String? // zone du commercial au moment de la saisie
   timestampLocal DateTime   // Moment exact de la saisie sur le terrain
   syncedAt       DateTime?  // Moment de réception serveur
   statut         String     @default("complet") // "brouillon" | "complet" | "doublon" | "valide"
@@ -44,6 +46,7 @@ model Fiche {
 
   @@index([telephoneSujet, type]) // index, PAS unique : les doublons sont stockés (statut "doublon")
   @@index([commercialId])
+  @@index([zoneEnregistrement])
   @@index([statut, type])
   @@map("fiches")
 }

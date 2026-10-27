@@ -7,6 +7,11 @@ import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
+function normaliserZones(zone: string, zones?: string[]): string[] {
+  const valeurs = zones?.length ? zones : zone.split(',');
+  return [...new Set(valeurs.map((valeur) => valeur.trim()).filter(Boolean))];
+}
+
 function normaliserNumeroWhatsApp(telephone: string): string {
   const chiffres = telephone.replace(/\D/g, '');
   const local = chiffres.startsWith('225') ? chiffres.slice(3) : chiffres;
@@ -48,7 +53,8 @@ const createCommercialSchema = z.object({
   email: z.union([z.string().email().max(200), z.literal('')]).optional(),
   zone: z.string().min(1).max(100),
   mot_de_passe: z.string().min(6).max(100),
-  role: z.enum(['commercial', 'admin']).optional(),
+  role: z.enum(['commercial', 'superviseur', 'admin']).optional(),
+  zones: z.array(z.string().min(1).max(100)).max(50).optional(),
 });
 
 const importCommercialSchema = z.object({
@@ -70,7 +76,7 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
     });
   }
 
-  const { nom, prenom, telephone, email, zone, mot_de_passe, role } = parsed.data;
+  const { nom, prenom, telephone, email, zone, mot_de_passe, role, zones } = parsed.data;
 
   const existant = await prisma.commercial.findUnique({ where: { telephone } });
   if (existant) {
@@ -79,8 +85,8 @@ router.post('/commerciaux', requireAuth, requireAdmin, async (req, res) => {
 
   const hash = await bcrypt.hash(mot_de_passe, 10);
   const commercial = await prisma.commercial.create({
-    data: { nom, prenom, telephone, email: email || null, zone, motDePasse: hash, role: role ?? 'commercial' },
-    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, role: true, actif: true, createdAt: true },
+    data: { nom, prenom, telephone, email: email || null, zone, zones: normaliserZones(zone, zones), motDePasse: hash, role: role ?? 'commercial' },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, zones: true, role: true, actif: true, createdAt: true },
   });
 
   return res.status(201).json(commercial);
@@ -112,6 +118,7 @@ router.post('/commerciaux/import', requireAuth, requireAdmin, async (req, res) =
           telephone: ligne.telephone,
           email: ligne.email || null,
           zone: ligne.commune,
+          zones: [ligne.commune],
           motDePasse: await bcrypt.hash(ligne.mot_de_passe, 10),
           role: 'commercial',
         },
@@ -139,7 +146,7 @@ router.get('/commerciaux', requireAuth, requireAdmin, async (_req, res) => {
   const commerciaux = await prisma.commercial.findMany({
     select: {
       id: true, nom: true, prenom: true, telephone: true, email: true, zone: true,
-      role: true, actif: true, createdAt: true,
+      zones: true, role: true, actif: true, createdAt: true,
       _count: { select: { fiches: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -192,6 +199,7 @@ router.patch('/commerciaux/:id', requireAuth, requireAdmin, async (req, res) => 
       telephone: z.string().min(6).max(30).optional(),
       email: z.union([z.string().email().max(200), z.literal('')]).optional(),
       zone: z.string().min(1).max(100).optional(),
+      zones: z.array(z.string().min(1).max(100)).max(50).optional(),
       mot_de_passe: z.string().min(6).max(100).optional(),
     })
     .refine((body) => Object.keys(body).length > 0, 'Au moins un champ est requis')
@@ -208,15 +216,17 @@ router.patch('/commerciaux/:id', requireAuth, requireAdmin, async (req, res) => 
     return res.status(400).json({ erreur: 'Impossible de désactiver un compte admin' });
   }
 
-  const { mot_de_passe, email, ...rest } = parsed.data;
+  const { mot_de_passe, email, zones, ...rest } = parsed.data;
+  const zonesFinales = zones ?? (parsed.data.zone ? normaliserZones(parsed.data.zone) : undefined);
   const updated = await prisma.commercial.update({
     where: { id: req.params.id },
     data: {
       ...rest,
       ...(email !== undefined ? { email: email || null } : {}),
+      ...(zonesFinales ? { zones: zonesFinales, zone: zonesFinales[0] } : {}),
       ...(mot_de_passe ? { motDePasse: await bcrypt.hash(mot_de_passe, 10) } : {}),
     },
-    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, actif: true },
+    select: { id: true, nom: true, prenom: true, telephone: true, email: true, zone: true, zones: true, role: true, actif: true },
   });
   return res.json(updated);
 });
@@ -252,7 +262,7 @@ router.get('/commerciaux/:id/fiches', requireAuth, requireAdmin, async (req, res
 
 /** PATCH /api/admin/commerciaux/:id/role — promouvoir/rétrograder un compte (admin) */
 router.patch('/commerciaux/:id/role', requireAuth, requireAdmin, async (req, res) => {
-  const parsed = z.object({ role: z.enum(['commercial', 'admin']) }).safeParse(req.body);
+  const parsed = z.object({ role: z.enum(['commercial', 'superviseur', 'admin']) }).safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ erreur: 'Body attendu : { role: "commercial" | "admin" }' });
   }

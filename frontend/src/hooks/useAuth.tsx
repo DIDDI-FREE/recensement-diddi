@@ -10,6 +10,7 @@ interface AuthState {
   logout: () => void;
   refreshUser: () => Promise<void>;
   isAdmin: boolean;
+  isSupervisor: boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, erreur, login, logout, refreshUser, isAdmin: user?.role === 'admin' }}
+      value={{ user, loading, erreur, login, logout, refreshUser, isAdmin: user?.role === 'admin', isSupervisor: user?.role === 'superviseur' }}
     >
       {children}
     </AuthContext.Provider>

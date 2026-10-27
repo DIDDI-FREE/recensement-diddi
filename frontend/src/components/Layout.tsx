@@ -72,6 +72,10 @@ export default function Layout({ user, onLogout }: Props) {
             <span className="text-xl">📋</span>
             Registre
           </NavLink>
+          <NavLink to="/rapports" className={lienNav}>
+            <span className="text-xs font-bold">SUI</span>
+            Suivi
+          </NavLink>
           {user.role === 'admin' && (
             <NavLink to="/gestion" className={lienNav}>
               <span className="text-xl">👥</span>
