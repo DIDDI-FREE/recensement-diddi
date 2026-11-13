@@ -32,7 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!getToken()) return;
     api<{ id: string }>('/auth/me')
       .then(() => setUser(getUser<Commercial>()))
-      .catch(() => setUser(null));
+      // Une erreur réseau ne doit pas déconnecter un utilisateur déjà authentifié.
+      // En revanche, une réponse 401 est déjà traitée dans api() : elle efface
+      // la session, donc getUser() renverra null dans ce cas.
+      .catch(() => setUser(getUser<Commercial>()));
   }, []);
 
   const login = useCallback(async (telephone: string, motDePasse: string) => {
