@@ -77,6 +77,12 @@ export default function Layout({ user, onLogout }: Props) {
             Suivi
           </NavLink>
           {user.role === 'admin' && (
+            <NavLink to="/export" className={lienNav}>
+              <span className="text-xs font-bold">EXP</span>
+              Export
+            </NavLink>
+          )}
+          {user.role === 'admin' && (
             <NavLink to="/gestion" className={lienNav}>
               <span className="text-xl">👥</span>
               Équipe

@@ -12,6 +12,7 @@ import GestionUtilisateurs from './pages/GestionUtilisateurs';
 import Profil from './pages/Profil';
 import FichesCommercial from './pages/FichesCommercial';
 import RapportActivite from './pages/RapportActivite';
+import AdminExport from './pages/AdminExport';
 
 function NotificationMiseAJour() {
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/fiche/:id" element={<FicheDetail />} />
           <Route path="/profil" element={<Profil />} />
           <Route path="/rapports" element={<RapportActivite />} />
+          <Route path="/export" element={user.role === 'admin' ? <AdminExport /> : <Navigate to="/" replace />} />
           <Route path="/gestion/commerciaux/:id/fiches" element={<FichesCommercial />} />
           <Route path="/gestion" element={user.role === 'admin' ? <GestionUtilisateurs /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

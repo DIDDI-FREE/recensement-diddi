@@ -27,6 +27,95 @@ function genererMotDePasseTemporaire(): string {
   return Array.from({ length: 10 }, () => alphabet[randomInt(alphabet.length)]).join('');
 }
 
+function dateAbidjan(date: Date): string {
+  return date.toLocaleDateString('sv-SE', { timeZone: 'Africa/Abidjan' });
+}
+
+function heureAbidjan(date: Date): string {
+  return date.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Abidjan', hour: '2-digit', minute: '2-digit' });
+}
+
+function aplatirDonnees(valeur: unknown, prefix = 'donnees', resultat: Record<string, string> = {}): Record<string, string> {
+  if (valeur === null || valeur === undefined) return resultat;
+  if (Array.isArray(valeur)) {
+    resultat[prefix] = valeur.map((item) => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(' | ');
+    return resultat;
+  }
+  if (typeof valeur === 'object') {
+    for (const [cle, enfant] of Object.entries(valeur)) aplatirDonnees(enfant, `${prefix}_${cle}`, resultat);
+    return resultat;
+  }
+  resultat[prefix] = String(valeur);
+  return resultat;
+}
+
+const libellesTypes: Record<string, string> = {
+  chauffeur: 'Chauffeur VTC',
+  livreur: 'Livreur',
+  restaurant: 'Restaurant',
+  agent_commercial: 'Commercial',
+};
+
+async function construireExport() {
+  const fiches = await prisma.fiche.findMany({
+    orderBy: [{ timestampLocal: 'desc' }, { commercial: { nom: 'asc' } }],
+    include: {
+      photos: { select: { id: true } },
+      commercial: { select: { id: true, nom: true, prenom: true, telephone: true, zone: true } },
+    },
+  });
+  const lignes = fiches.map((fiche) => {
+    let donnees: Record<string, unknown> = {};
+    try { donnees = JSON.parse(fiche.donnees) as Record<string, unknown>; } catch { donnees = { donnees_invalides: fiche.donnees }; }
+    return {
+      id: fiche.id,
+      id_local: fiche.idLocal,
+      date: dateAbidjan(fiche.timestampLocal),
+      heure: heureAbidjan(fiche.timestampLocal),
+      commercial_id: fiche.commercial.id,
+      commercial: `${fiche.commercial.prenom} ${fiche.commercial.nom}`.trim(),
+      commercial_telephone: fiche.commercial.telephone,
+      zone: fiche.zoneEnregistrement || fiche.commercial.zone,
+      categorie: fiche.type,
+      categorie_libelle: libellesTypes[fiche.type] || fiche.type,
+      statut: fiche.statut,
+      telephone_sujet: fiche.telephoneSujet,
+      photos: fiche.photos.length,
+      synced_at: fiche.syncedAt?.toISOString() || '',
+      ...aplatirDonnees(donnees),
+    };
+  });
+
+  const parJour = new Map<string, { date: string; total: number; par_categorie: Record<string, number>; par_commercial: Map<string, { id: string; nom: string; total: number; par_categorie: Record<string, number> }> }>();
+  for (const ligne of lignes) {
+    const jour: { date: string; total: number; par_categorie: Record<string, number>; par_commercial: Map<string, { id: string; nom: string; total: number; par_categorie: Record<string, number> }> } = parJour.get(ligne.date) ?? { date: ligne.date, total: 0, par_categorie: {}, par_commercial: new Map() };
+    jour.total += 1;
+    jour.par_categorie[ligne.categorie] = (jour.par_categorie[ligne.categorie] ?? 0) + 1;
+    const commercial: { id: string; nom: string; total: number; par_categorie: Record<string, number> } = jour.par_commercial.get(ligne.commercial_id) ?? { id: ligne.commercial_id, nom: ligne.commercial, total: 0, par_categorie: {} };
+    commercial.total += 1;
+    commercial.par_categorie[ligne.categorie] = (commercial.par_categorie[ligne.categorie] ?? 0) + 1;
+    jour.par_commercial.set(ligne.commercial_id, commercial);
+    parJour.set(ligne.date, jour);
+  }
+
+  return {
+    genere_le: new Date().toISOString(),
+    total: lignes.length,
+    lignes,
+    par_jour: [...parJour.values()].map((jour) => ({ ...jour, par_commercial: [...jour.par_commercial.values()].sort((a, b) => b.total - a.total) })).sort((a, b) => b.date.localeCompare(a.date)),
+  };
+}
+
+function csvEchapper(valeur: unknown): string {
+  const texte = String(valeur ?? '');
+  return /[";\r\n]/.test(texte) ? `"${texte.replace(/"/g, '""')}"` : texte;
+}
+
+function convertirEnCsv(lignes: Record<string, string | number>[]): string {
+  const colonnes = [...new Set(lignes.flatMap((ligne) => Object.keys(ligne)))];
+  return `\uFEFF${colonnes.map(csvEchapper).join(';')}\r\n${lignes.map((ligne) => colonnes.map((colonne) => csvEchapper(ligne[colonne])).join(';')).join('\r\n')}\r\n`;
+}
+
 async function envoyerWhatsApp(numero: string, message: string): Promise<void> {
   const serverUrl = process.env.EVOLUTION_SERVER_URL;
   const apiKey = process.env.EVOLUTION_API_KEY;
@@ -64,6 +153,21 @@ const importCommercialSchema = z.object({
   email: z.union([z.string().email().max(200), z.literal('')]).optional(),
   commune: z.string().min(1).max(100),
   mot_de_passe: z.string().min(6).max(100),
+});
+
+/** GET /api/admin/export — synthèse complète, réservée aux administrateurs. */
+router.get('/export', requireAuth, requireAdmin, async (_req, res) => {
+  const exportComplet = await construireExport();
+  return res.json(exportComplet);
+});
+
+/** GET /api/admin/export/csv — export tabulaire compatible Excel, réservé aux administrateurs. */
+router.get('/export/csv', requireAuth, requireAdmin, async (_req, res) => {
+  const exportComplet = await construireExport();
+  const csv = convertirEnCsv(exportComplet.lignes);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="diddifree-export-${dateAbidjan(new Date())}.csv"`);
+  return res.send(csv);
 });
 
 /** POST /api/admin/commerciaux — créer un compte commercial ou admin (réservé admin) */
