@@ -48,7 +48,7 @@ export default function Dashboard() {
         )}
         {online && enAttente > 0 && (
           <button
-            onClick={() => void synchroniser()}
+            onClick={() => void synchroniser().catch(() => undefined)}
             className="mt-3 w-full rounded-md bg-teal-600 py-2 font-medium text-white hover:bg-teal-700"
           >
             Synchroniser maintenant ({enAttente})

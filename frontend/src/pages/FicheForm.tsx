@@ -121,7 +121,7 @@ export default function FicheForm() {
 
       // 3) En ligne : pousse IMMEDIATEMENT vers le serveur (sans attendre le polling 30 s)
       if (navigator.onLine) {
-        void synchroniser();
+        void synchroniser().catch(() => undefined);
       }
     } finally {
       setSauvegarde(false);
