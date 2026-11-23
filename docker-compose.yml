@@ -21,6 +21,7 @@ services:
       - EVOLUTION_SERVER_URL=${SERVER_URL:-http://169.58.70.37:8080}
       - EVOLUTION_API_KEY=${AUTHENTICATION_API_KEY}
       - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
+      - SYNC_STRICT_VALIDATION=${SYNC_STRICT_VALIDATION:-true}
     volumes:
       - uploads:/app/uploads
     depends_on:

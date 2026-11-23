@@ -11,17 +11,23 @@ const photoSchema = z.object({
   taille_octets: z.number().int().nonnegative().optional(),
 });
 
+const telephoneSujetSchema = z.string().min(
+  process.env.SYNC_STRICT_VALIDATION === 'false' ? 1 : 6
+).max(30);
+
 const ficheSchema = z.object({
   id_local: z.string().uuid(),
   type: z.enum(TYPES_FICHE),
   timestamp_local: z.string().datetime({ offset: true }),
-  telephone_sujet: z.string().min(6).max(30),
+  telephone_sujet: telephoneSujetSchema,
   donnees: z.record(z.unknown()),
   statut: z.enum(['brouillon', 'complet']).optional(),
 });
 
 export const syncBodySchema = z.object({
-  fiches: z.array(ficheSchema).max(200),
+  // Les fiches sont validées individuellement dans processSync afin qu'une
+  // fiche invalide ne bloque pas les autres du même batch.
+  fiches: z.array(z.unknown()).max(200),
   photos: z.array(photoSchema).max(500).default([]),
 });
 
@@ -54,7 +60,24 @@ export async function processSync(
     photosByFiche.set(photo.fiche_id_local, list);
   }
 
-  for (const fiche of body.fiches) {
+  for (const [index, ficheBrute] of body.fiches.entries()) {
+    const ficheId =
+      typeof ficheBrute === 'object' && ficheBrute !== null && 'id_local' in ficheBrute && typeof ficheBrute.id_local === 'string'
+        ? ficheBrute.id_local
+        : `fiche-invalide-${index + 1}`;
+    const ficheParse = ficheSchema.safeParse(ficheBrute);
+    if (!ficheParse.success) {
+      resultats.push({
+        id_local: ficheId,
+        statut: 'erreur',
+        message: ficheParse.error.issues
+          .map((issue) => `${issue.path.join('.') || 'fiche'}: ${issue.message}`)
+          .join('; '),
+      });
+      continue;
+    }
+
+    const fiche = ficheParse.data;
     try {
       const resultat = await prisma.$transaction(async (tx) => {
         // 1) Idempotence : déjà reçue ?

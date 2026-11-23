@@ -50,7 +50,9 @@ export async function api<T = unknown>(
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data as { erreur?: string }).erreur ?? `Erreur ${res.status}`);
+    const erreur = data as { erreur?: string; details?: string[] };
+    const details = erreur.details?.length ? ` : ${erreur.details.join('; ')}` : '';
+    throw new Error(`${erreur.erreur ?? `Erreur ${res.status}`}${details}`);
   }
   return data as T;
 }
