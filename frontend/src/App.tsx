@@ -1,5 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
@@ -13,10 +13,34 @@ import Profil from './pages/Profil';
 import FichesCommercial from './pages/FichesCommercial';
 import RapportActivite from './pages/RapportActivite';
 import AdminExport from './pages/AdminExport';
+import { FORCE_UPDATE_EVENT } from './components/ForceUpdateButton';
 
 function NotificationMiseAJour() {
   const { needRefresh: [needRefresh, setNeedRefresh], updateServiceWorker } = useRegisterSW();
   const [masquee, setMasquee] = useState(false);
+
+  const forcerMiseAJour = useCallback(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    await registration?.update();
+    const actualisation = await navigator.serviceWorker.getRegistration();
+
+    if (actualisation?.waiting) {
+      await updateServiceWorker(true);
+      return;
+    }
+
+    // Même si le service worker est déjà à jour, le rechargement force le
+    // navigateur à reprendre l'interface disponible sans toucher à IndexedDB.
+    window.location.reload();
+  }, [updateServiceWorker]);
+
+  useEffect(() => {
+    const demanderMiseAJour = () => {
+      void forcerMiseAJour().catch(() => window.location.reload());
+    };
+    window.addEventListener(FORCE_UPDATE_EVENT, demanderMiseAJour);
+    return () => window.removeEventListener(FORCE_UPDATE_EVENT, demanderMiseAJour);
+  }, [forcerMiseAJour]);
 
   if (!needRefresh || masquee) return null;
 

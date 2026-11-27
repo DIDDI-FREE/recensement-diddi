@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import type { Commercial } from '../types';
 import { demarrerSyncAuto } from '../sync/syncManager';
 import SyncIndicator from './SyncIndicator';
+import ForceUpdateButton from './ForceUpdateButton';
 
 interface Props {
   user: Commercial;
@@ -39,6 +40,7 @@ export default function Layout({ user, onLogout }: Props) {
           </button>
           <div className="flex items-center gap-2">
             <SyncIndicator />
+            <ForceUpdateButton />
             <button
               onClick={() => navigate('/profil')}
               className="rounded-lg bg-teal-800 px-2.5 py-2 text-xs font-semibold transition hover:bg-teal-900 sm:px-3"
